@@ -7,8 +7,8 @@ config_object["PROCESSING_CONFIG"] = {
     "model": '',
     "n_keywords": 10,
     "generate_wordclouds": True,
-    "lemmatize":True,
-    "remove_stopwords":True,
+    "lemmatize":False,
+    "remove_stopwords":False,
 }
 
 config_object["INPUT_CONFIG"] = {
