@@ -1,5 +1,6 @@
-top2vec[sentence_encoders]
-top2vec[sentence_transformers]
-top2vec[indexing]
-pandas
-spacy
+top2vec[indexing, sentence_encoders, sentence_transformers]==1.0.27
+pandas==1.4.0
+spacy==3.3.0
+numpy==1.21.6
+transformers==4.16.2
+sentence-transformers==2.2.0
