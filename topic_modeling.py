@@ -2,10 +2,11 @@ import os
 from xml.dom.pulldom import parseString
 import numpy as np
 import pandas as pd
-import spacy
+import spacy, top2vec
 from top2vec import Top2Vec
 from configparser import ConfigParser
 from tqdm import tqdm
+from sentence_transformers import SentenceTransformer
 
 #______________________________________________________________________________________________
 
@@ -17,7 +18,6 @@ def main():
     processing_config = config_object["PROCESSING_CONFIG"]
 
 #LOAD_DATA_____________________________________________________________________________________
-    print('loading data...')
     if input_config['input_format'] == 'csv': #csv file
         df = pd.read_csv(input_config['input'])
 
@@ -35,78 +35,114 @@ def main():
             'filename': filenames,
             'text':texts
             })
-    df = df[:1000]
+    df = df[:200]
 
-# #PREPROCESSING_________________________________________________________________________________
-#     print('preprocessing data...')
-#     nlp = spacy.load("nl_core_news_sm")
+#PREPROCESSING_________________________________________________________________________________
+    print('preprocessing data...')
+    if int(processing_config['preprocess']):
+        nlp = spacy.load("nl_core_news_sm")
+        content_words = {'VERB', 'ADV', 'NOUN', 'PROPN', 'ADJ'}
 
-#     content_words = {'VERB', 'ADV', 'NOUN', 'PROPN', 'ADJ'}
-#     def preprocess(text):
-#         if not processing_config['lemmatize'] and not processing_config['remove_stopwords']:
-#             pass
-#         else:
-#             doc = nlp(text)
-#             if processing_config['lemmatize'] and processing_config['remove_stopwords']:
-#                 text = ' '.join([t.lemma_ for t in doc if t.pos_ in content_words])
-#             elif processing_config['lemmatize'] and not processing_config['remove_stopwords']:
-#                 text = ' '.join([t.lemma_ for t in doc])
-#             else:
-#                 text = ' '.join([t for t in doc if t.pos_ in content_words])
-#         return text
+        def preprocess(text):
+            if not int(processing_config['lemmatize']) and not int(processing_config['remove_stopwords']):
+                pass
+            else:
+                doc = nlp(text)
+                if int(processing_config['lemmatize']) and int(processing_config['remove_stopwords']):
+                    text = ' '.join([t.lemma_ for t in doc if t.pos_ in content_words])
+                elif int(processing_config['lemmatize']) and not int(processing_config['remove_stopwords']):
+                    text = ' '.join([t.lemma_ for t in doc])
+                else:
+                    text = ' '.join([t for t in doc if t.pos_ in content_words])
+            return text
 
-#     df['text'] = df['text'].apply(lambda x: preprocess(x))
+        df['text'] = df['text'].apply(lambda x: preprocess(x))
     
 #PREPARE_OUTPUT_DIR____________________________________________________________________________
-    if not output_config['overwrite_output_dir']:
+    if not int(output_config['overwrite_output_dir']):
         assert os.path.exists(output_config['output_dir']) == False
     if not os.path.exists(output_config['output_dir']):
         os.mkdir(output_config['output_dir'])
 
 #TRAIN_MODEL___________________________________________________________________________________
-    print('training model...')
-    model = Top2Vec(df[input_config['text_column']].tolist())
-    topic_sizes, topic_nums = model.get_topic_sizes()
+    default_models = {
+        'doc2vec', 
+        'universal-sentence-encoder', 
+        'universal-sentence-encoder-large', 
+        'universal-sentence-encoder-multilingual', 
+        'universal-sentence-encoder-multilingual-large',
+        'distiluse-base-multilingual-cased',
+        'all-MiniLM-L6-v2',
+        'paraphrase-multilingual-MiniLM-L12-v2'
+        }
+
+    base_model = processing_config['model'].strip()
+    if not base_model:
+        base_model = 'doc2vec'
+
+    model = Top2Vec(
+        df[input_config['text_column']].tolist(), 
+        embedding_model=base_model
+        )
+
+    #to do: enable any HuggingFace model
+
+#HIERARCHICAL_TOPIC_REDUCTION__________________________________________________________________
+    reduced = False
+    max_n_topics = int(processing_config['topic_reduction']) 
+    if max_n_topics and max_n_topics < model.get_num_topics():
+        model.hierarchical_topic_reduction(num_topics=max_n_topics)
+        reduced = True
 
 #GET_KEYWORDS__________________________________________________________________________________
-    print('get keywords...')
-    n_topics = model.get_num_topics()
-    topic_idx = list(range(n_topics))
-
     keywords = []
     n_keywords = int(processing_config['n_keywords'])
-    for i in topic_idx:
-        topic_keywords = model.topic_words[i].tolist()
-        if len(topic_keywords) >= n_keywords:
-            topic_keywords = topic_keywords[:n_keywords]
-        topic_keywords = ', '.join(topic_keywords)
-        keywords.append(topic_keywords)
+
+    if not reduced:
+        n_topics = model.get_num_topics()
+        topic_idx = list(range(n_topics))
+
+        for i in topic_idx:
+            topic_keywords = model.topic_words[i].tolist()
+            if len(topic_keywords) >= n_keywords:
+                topic_keywords = topic_keywords[:n_keywords]
+            topic_keywords = ', '.join(topic_keywords)
+            keywords.append(topic_keywords)
+
+    else:
+        n_topics = model.get_num_topics_reduced()
+        topic_idx = list(range(n_topics))
+
+        for i in topic_idx:
+            topic_keywords = model.topic_words_reduced[i].tolist()
+            if len(topic_keywords) >= n_keywords:
+                topic_keywords = topic_keywords[:n_keywords]
+            topic_keywords = ', '.join(topic_keywords)
+            keywords.append(topic_keywords)
 
     keyword_df = pd.DataFrame(data={'topic_id': topic_idx, 'keywords': keywords})
     keyword_df.to_csv(os.path.join(output_config['output_dir'], 'keywords_per_topic.csv'), index=False)
 
-#RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________
-    print('retrieve topic scores per doc...')
-    topic_df = pd.DataFrame()
-    topic_scores = dict()
-    for size, num in tqdm(zip(topic_sizes, topic_nums)):
-        _, document_scores, document_ids = model.search_documents_by_topic(topic_num=num, num_docs=size)
-        for i, score in zip(document_ids, document_scores):
-            if i not in topic_scores.keys():
-                doc_dict = {num: score}
-                topic_scores[i] = doc_dict
-            else:
-                doc_dict = topic_scores[i]
-                doc_dict[num] = score
-                topic_scores[i] = doc_dict
-    #print(topic_scores)
-    for doc_i, doc_dict in topic_scores.items():
-        row = {'id': doc_i}
-        for topic, score in doc_dict.items():
-            row['topic'] = topic
-            row['score'] = score
-        topic_df = topic_df.append(row, ignore_index=True)
-    topic_df = topic_df.astype({"id": 'int64', "topic": 'int64', "score": float}, errors='raise') 
+#RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________    
+    if not reduced:
+        topics = model.doc_top.tolist()
+        scores = model.doc_dist.tolist()
+    
+    else:
+        topics = model.doc_top_reduced.tolist()
+        scores = model.doc_dist_reduced.tolist()
+    
+    if processing_config['index_column'] != 'None':
+        idx = df[processing_config['index_column']]
+    elif 'filename' in df.columns:
+        idx = df['filename']
+    else:
+        idx = list(range(0, len(df)))
+
+    data = {'id': idx, 'topic': topics, 'score': scores}
+    topic_df = pd.DataFrame(data=data)
+    topic_df = topic_df.astype({"id": 'int64', "topic": 'int64', "score": float}, errors='raise')
+    topic_df.sort_values(by='id', inplace=True) 
     topic_df.to_csv(os.path.join(output_config['output_dir'], 'topic_scores.csv'), index=False)
     print('done!')
 #______________________________________________________________________________________________

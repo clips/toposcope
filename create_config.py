@@ -1,14 +1,15 @@
-
 from configparser import ConfigParser
 
 config_object = ConfigParser()
 
 config_object["PROCESSING_CONFIG"] = {
     "model": '',
+    "topic_reduction": 0,
     "n_keywords": 10,
-    "generate_wordclouds": True,
-    "lemmatize":False,
-    "remove_stopwords":False,
+    "preprocess": 0,
+    "lemmatize": 0,
+    "remove_stopwords": 0,
+    "index_column": 'None',
 }
 
 config_object["INPUT_CONFIG"] = {
@@ -19,8 +20,7 @@ config_object["INPUT_CONFIG"] = {
 
 config_object["OUTPUT_CONFIG"] = {
     "output_dir": './output',
-    "overwrite_output_dir": True
-}
+    "overwrite_output_dir": 1}
 
 with open('config.ini', 'w') as conf:
     config_object.write(conf)
