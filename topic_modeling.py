@@ -7,6 +7,7 @@ from top2vec import Top2Vec
 from configparser import ConfigParser
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
+from nltk.util import ngrams
 
 #______________________________________________________________________________________________
 
@@ -39,24 +40,31 @@ def main():
 
 #PREPROCESSING_________________________________________________________________________________
     print('preprocessing data...')
-    if int(processing_config['preprocess']):
-        nlp = spacy.load("nl_core_news_sm")
-        content_words = {'VERB', 'ADV', 'NOUN', 'PROPN', 'ADJ'}
+    nlp = spacy.load("nl_core_news_sm")
+    content_words = {'VERB', 'ADV', 'NOUN', 'PROPN', 'ADJ'}
 
-        def preprocess(text):
-            if not int(processing_config['lemmatize']) and not int(processing_config['remove_stopwords']):
-                pass
-            else:
-                doc = nlp(text)
-                if int(processing_config['lemmatize']) and int(processing_config['remove_stopwords']):
-                    text = ' '.join([t.lemma_ for t in doc if t.pos_ in content_words])
-                elif int(processing_config['lemmatize']) and not int(processing_config['remove_stopwords']):
-                    text = ' '.join([t.lemma_ for t in doc])
-                else:
-                    text = ' '.join([t for t in doc if t.pos_ in content_words])
-            return text
+    def preprocess(text):
+        doc = nlp(text)
+        if int(processing_config['lemmatize']) and int(processing_config['remove_stopwords']):
+            text = ' '.join([t.lemma_ for t in doc if t.pos_ in content_words])
+        elif int(processing_config['lemmatize']) and not int(processing_config['remove_stopwords']):
+            text = ' '.join([t.lemma_ for t in doc])
+        elif not int(processing_config['lemmatize']) and int(processing_config['remove_stopwords']):
+            text = ' '.join([t.text for t in doc if t.pos_ in content_words])
+        else:
+            text = ' '.join([t.text for t in doc])
+        return text
 
-        df['text'] = df['text'].apply(lambda x: preprocess(x))
+    df['text'] = df['text'].apply(lambda x: preprocess(x))
+    
+    def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
+        result = []
+        n = 1
+        while n <= upper_n:
+            for gram in ngrams(text.split(' '), n):
+                result.append(' '.join(gram).strip())
+            n += 1
+        return result
     
 #PREPARE_OUTPUT_DIR____________________________________________________________________________
     if not int(output_config['overwrite_output_dir']):
@@ -82,7 +90,8 @@ def main():
 
     model = Top2Vec(
         df[input_config['text_column']].tolist(), 
-        embedding_model=base_model
+        embedding_model=base_model,
+        tokenizer=tokenizer 
         )
 
     #to do: enable any HuggingFace model
