@@ -1,13 +1,11 @@
 import os
-from xml.dom.pulldom import parseString
-import numpy as np
 import pandas as pd
-import spacy, top2vec
+import spacy
 from top2vec import Top2Vec
 from configparser import ConfigParser
-from tqdm import tqdm
-from sentence_transformers import SentenceTransformer
 from nltk.util import ngrams
+from gensim.models.coherencemodel import CoherenceModel
+from gensim.corpora import Dictionary
 
 #______________________________________________________________________________________________
 
@@ -36,8 +34,7 @@ def main():
             'filename': filenames,
             'text':texts
             })
-    df = df[:200]
-
+            
 #PREPROCESSING_________________________________________________________________________________
     print('preprocessing data...')
     nlp = spacy.load("nl_core_news_sm")
@@ -154,6 +151,28 @@ def main():
     topic_df.sort_values(by='id', inplace=True) 
     topic_df.to_csv(os.path.join(output_config['output_dir'], 'topic_scores.csv'), index=False)
     print('done!')
+
+#CALCULATE_COHERENCE_SCORE_____________________________________________________________________
+    def get_coherence_score(topic_words, documents): 
+
+        tokenized = [tokenizer(d) for d in documents]
+
+        id2word = Dictionary(tokenized)
+        corpus = [id2word.doc2bow(text) for text in tokenized] 
+        topics = [s.tolist() for s in topic_words] 
+
+        cm = CoherenceModel(topics=topics, texts=tokenized, dictionary=id2word, corpus=corpus)
+        return cm.get_coherence()
+    
+    if reduced:
+       topic_words = [model.topic_words_reduced[i].tolist() for i in topics]
+    else:
+        topic_words = [model.topic_words[i] for i in topics]
+    documents = df[input_config['text_column']].tolist()
+    coherence = get_coherence_score(topic_words, documents)
+
+    with open(os.path.join(output_config['output_dir'], 'coherence.txt'), 'w') as f:
+        f.write(str(coherence))
 #______________________________________________________________________________________________
 if __name__ == "__main__":
     main()
