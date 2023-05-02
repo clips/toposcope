@@ -4,3 +4,4 @@ spacy==3.3.0
 numpy==1.21.6
 transformers==4.16.2
 sentence-transformers==2.2.0
+octis==1.11.1

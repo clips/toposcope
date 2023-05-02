@@ -1,0 +1,321 @@
+#system
+import os
+from configparser import ConfigParser
+
+#NLP
+import spacy, regex
+import pandas as pd
+from nltk.util import ngrams
+from nltk.corpus import stopwords
+from string import punctuation
+
+#LDA
+from gensim.corpora.dictionary import Dictionary
+from gensim.models.coherencemodel import CoherenceModel
+
+#Top2Vec
+from top2vec import Top2Vec
+
+#BERTopic
+from bertopic import BERTopic
+from transformers.pipelines import pipeline
+
+#load SpaCy and config_______________________________________________________________________
+config_object = ConfigParser()
+config_object.read('config.ini')
+input_config = config_object["INPUT_CONFIG"] 
+output_config = config_object["OUTPUT_CONFIG"]
+processing_config = config_object["PROCESSING_CONFIG"]
+
+#_____________________________________________________________________________________________
+def BERT_topic(df, text_column):
+
+    """Training pipeline for BERTopic"""
+
+    #get base model
+    if processing_config['model']:
+        embedding_model = pipeline("feature-extraction", model=base_model)
+    else:
+        embedding_model = None
+
+    #check if seed topics were provided
+    if processing_config['seed_topic_list']:
+
+        with open(processing_config['seed_topic_list']) as f:
+            lines = f.readlines()
+            seed_topic_list = [[w.strip() for w in l.split(',')] for l in lines]
+    else:
+        seed_topic_list = None
+
+    #instantiate topic model object
+    topic_model = BERTopic(
+        n_gram_range=(1, int(processing_config['upper_ngram_range'])),
+        language=processing_config['lang'],
+        top_n_words=int(processing_config['n_keywords']),
+        min_topic_size=int(processing_config['min_topic_size']),
+        seed_topic_list=seed_topic_list,
+        #embedding_model=embedding_model, 
+        nr_topics=int(processing_config['topic_reduction']),
+    )
+
+    topics, probs = topic_model.fit_transform(df[text_column].to_numpy())
+    topic_idx = topic_model.get_topic_info()['Topic']
+    keywords = []
+
+    for i in topic_idx:
+        topic_keywords = [x[0] for x in topic_model.get_topic(i)]
+        topic_keywords = ', '.join(topic_keywords)
+        keywords.append(topic_keywords)
+
+    keyword_df = pd.DataFrame(data={
+        'idx': topic_idx,
+        'keywords': keywords,
+        })
+
+    idx = list(range(len(df)))
+    if 'filename' in df.columns:
+        idx = df['filename'].tolist()
+    
+    return idx, topics, probs, keywords, keyword_df
+
+def coherence(topics, texts):
+
+    dictionary = Dictionary(texts)
+    corpus = [dictionary.doc2bow(text) for text in texts]
+
+    cm = CoherenceModel(topics=topics, 
+                        texts=texts, 
+                        corpus=corpus, 
+                        dictionary=dictionary, 
+                        coherence='c_v')
+    
+    coherence_score = round(cm.get_coherence(), 3)
+
+    return coherence_score
+
+# def LDA_model(df, text_column): 
+    
+#     #to do: deal with ngrams
+
+#     #prepare input
+#     dictionary = Dictionary(df[text_column])
+#     corpus = [dictionary.doc2bow(text) for text in df[text_column].to_numpy()]
+#     num_topics = int(processing_config['topic_reduction'])
+
+#     #fit model
+#     lda_model = gensim.models.ldamodel.LdaModel(
+#         corpus=corpus,
+#         id2word=id2word,
+#         num_topics=num_topics, 
+#         random_state=42,
+#         update_every=1,
+#         chunksize=100,
+#         passes=10,
+#         alpha='auto',
+#         per_word_topics=True
+#     )
+
+#     topic_distributions = [lda_model[row[text_column]] for i, row in df.iterrows()]
+#     sorted_topic_distributions = [[k, v] for d in topic_distributions for k, v in sorted(d.items(), key=lambda item: item[1])]
+#     topic_probs = [d[0] for d in sorted_topic_distributions]
+#     topics = [d[0] for d in topic_probs]
+#     probs = [d[1] for d in topic_probs]
+
+#     keywords = [[t for t, score in ldamodel.show_topic(i, topn=processing_config['n_keywords'])] for i in range(lda_model.num_topics)]
+
+#     keyword_df = pd.DataFrame(data={'topic_id': range(lda_model.num_topics), 'keywords': keywords})
+
+#     index_column = processing_config['index_column']
+#     if index_column == 'None':
+#         idx = range(len(df))
+#     else:
+#         idx = df[index_column].tolist()
+    
+#     return idx, topics, probs, keywords, keyword_df
+
+def load_data(in_dir, input_format):
+
+    """Load data. Valid formats are .csv/.xlsx file, or directory of .txt files"""
+
+    if input_format == 'csv': #csv file
+        df = pd.read_csv(in_dir)[:1000]
+
+    elif input_format == 'xlsx': #excel file
+        df = pd.read_excel(in_dir)
+
+    else: #folder with txt
+        filenames = os.listdir(in_dir)
+        texts = []
+        for fn in filenames:
+            with open(os.path.join(in_dir, fn)) as f:
+                text = ' '.join(f.readlines())
+                text = ' '.join(text.split())
+            texts.append(text)
+        df = pd.DataFrame(data={
+            'filename': filenames,
+            'text':texts
+            })
+    
+    return df
+
+def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase): #to do: custom stop word list
+
+    """Create Spacy doc from input. 
+    Lemmatize and/or remove stopwords (incl. punctuation) if requested."""
+
+    lang = processing_config['lang']
+
+    #load relevant SpaCy model
+    if lang =='dutch':
+        nlp = spacy.load("nl_core_news_sm")
+    elif lang == 'english':
+        nlp = spacy.load("en_core_web_sm")
+    else:
+        raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english'.")
+
+    #create doc object
+    doc = nlp(text)
+
+    #lemmatize
+    if lemmatize:
+        text = ' '.join([t.lemma_ for t in doc])
+    else:
+        text = ' '.join([t.text for t in doc])
+    
+    #lowercase
+    if lowercase:
+        text = text.lower()
+    
+    #remove stopwords
+    custom_stopword_dir = processing_config['custom_stopword_list']
+
+    if remove_stopwords:
+        stop_words = stopwords.words(lang)
+        text = ' '.join([t for t in text.split() if t not in stop_words])
+
+    #custom stop word list
+    if custom_stopword_dir:
+        with open(custom_stopword_dir) as x:
+            lines = x.readlines()
+            custom_stopwords = [l.strip() for l in lines]
+            text = ' '.join([t for t in text.split() if t not in custom_stopwords])
+
+    # remove punctuation
+    if remove_punct:
+        for p in punctuation:
+            text = text.replace(p, '')
+        text = ' '.join(text.split())
+
+    return text
+
+def proportion_unique_words(topics, topk=10):
+    """
+    compute the proportion of unique words
+    Parameters
+    ----------
+    topics: a list of lists of words
+    topk: top k words on which the topic diversity will be computed
+    """
+    if topk > len(topics[0]):
+        raise Exception('Words in topics are less than '+str(topk))
+    else:
+        unique_words = set()
+        for topic in topics:
+            unique_words = unique_words.union(set(topic[:topk]))
+        puw = len(unique_words) / (topk * len(topics))
+        return round(puw, 3)
+
+def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
+        
+        """Tokenizer function to use later in case ngrams are requested."""
+
+        result = []
+        n = 1
+        while n <= upper_n:
+            for gram in ngrams(text.split(' '), n):
+                result.append(' '.join(gram).strip())
+            n += 1
+        return result
+
+def top_2_vec(df, text_column):
+
+    "Top2Vec training pipeline"
+
+    base_model = processing_config['model']
+
+    default_models = {
+        'doc2vec', 
+        'universal-sentence-encoder', 
+        'universal-sentence-encoder-large', 
+        'universal-sentence-encoder-multilingual', 
+        'universal-sentence-encoder-multilingual-large',
+        'distiluse-base-multilingual-cased',
+        'all-MiniLM-L6-v2',
+        'paraphrase-multilingual-MiniLM-L12-v2'
+    }
+
+    if not base_model:
+        base_model = 'doc2vec'
+
+    model = Top2Vec(
+        df[text_column].tolist(), 
+        embedding_model=base_model,
+        split_documents=False,
+        min_count=50, #words occurring less frequently than 'min_count' are ignored
+        tokenizer=tokenizer 
+    )
+
+    #HIERARCHICAL_TOPIC_REDUCTION__________________________________________________________________
+    reduced = False
+    max_n_topics = int(processing_config['topic_reduction']) 
+    if max_n_topics and max_n_topics < model.get_num_topics():
+        model.hierarchical_topic_reduction(num_topics=max_n_topics)
+        reduced = True
+
+    #GET_KEYWORDS__________________________________________________________________________________
+    keywords = []
+    n_keywords = int(processing_config['n_keywords'])
+
+    if not reduced:
+        n_topics = model.get_num_topics()
+        topic_idx = list(range(n_topics))
+
+        for i in topic_idx:
+            topic_keywords = model.topic_words[i].tolist()
+            if len(topic_keywords) >= n_keywords:
+                topic_keywords = topic_keywords[:n_keywords]
+            topic_keywords = ', '.join(topic_keywords)
+            keywords.append(topic_keywords)
+
+    else:
+        n_topics = len([t for t in model.topic_words_reduced])
+        topic_idx = list(range(n_topics))
+
+        for i in topic_idx:
+            topic_keywords = model.topic_words_reduced[i].tolist()
+            if len(topic_keywords) >= n_keywords:
+                topic_keywords = topic_keywords[:n_keywords]
+            topic_keywords = ', '.join(topic_keywords)
+            keywords.append(topic_keywords)
+
+    keyword_df = pd.DataFrame(data={'topic_id': topic_idx, 'keywords': keywords})
+
+    #RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________    
+    if not reduced:
+        topics = model.doc_top.tolist()
+        probs = model.doc_dist.tolist()
+    
+    else:
+        topics = model.doc_top_reduced.tolist()
+        probs = model.doc_dist_reduced.tolist()
+    
+    if processing_config['index_column'] != 'None':
+        idx = df[processing_config['index_column']]
+    elif 'filename' in df.columns:
+        idx = df['filename'].tolist()
+    else:
+        idx = list(range(0, len(df)))
+    
+    return idx, topics, probs, keywords, keyword_df
+
+
