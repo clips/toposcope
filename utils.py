@@ -2,16 +2,21 @@
 import os
 from configparser import ConfigParser
 
-#NLP
+#preprocessing
 import spacy, regex
 import pandas as pd
+import numpy as np
+
 from nltk.util import ngrams
 from nltk.corpus import stopwords
 from string import punctuation
+from sklearn.feature_extraction.text import CountVectorizer
+
+from gensim.corpora import Dictionary
+from gensim.models import CoherenceModel
 
 #LDA
-from gensim.corpora.dictionary import Dictionary
-from gensim.models.coherencemodel import CoherenceModel
+from sklearn.decomposition import LatentDirichletAllocation, NMF
 
 #Top2Vec
 from top2vec import Top2Vec
@@ -70,18 +75,21 @@ def BERT_topic(df, text_column):
     keyword_df = pd.DataFrame(data={
         'idx': topic_idx,
         'keywords': keywords,
-        })
+    })
 
-    idx = list(range(len(df)))
-    if 'filename' in df.columns:
+    if processing_config['index_column'] == 'None':
+        idx = list(range(len(df)))
+    elif input_config['input_format'] == 'txt':
         idx = df['filename'].tolist()
+    else:
+        idx = df[processing_config['index_column']].tolist()
     
     return idx, topics, probs, keywords, keyword_df
 
 def coherence(topics, texts):
 
     dictionary = Dictionary(texts)
-    corpus = [dictionary.doc2bow(text) for text in texts]
+    corpus = [[dictionary.doc2bow(text)] for text in texts]
 
     cm = CoherenceModel(topics=topics, 
                         texts=texts, 
@@ -93,52 +101,62 @@ def coherence(topics, texts):
 
     return coherence_score
 
-# def LDA_model(df, text_column): 
-    
-#     #to do: deal with ngrams
+def LDA_inference(model, vectorizer, topics, text):
+    vectorized_text = vectorizer.transform([text])
+    scores = model.transform(vectorized_text)
 
-#     #prepare input
-#     dictionary = Dictionary(df[text_column])
-#     corpus = [dictionary.doc2bow(text) for text in df[text_column].to_numpy()]
-#     num_topics = int(processing_config['topic_reduction'])
+    return topics[np.argmax(scores)], max(scores[0])
 
-#     #fit model
-#     lda_model = gensim.models.ldamodel.LdaModel(
-#         corpus=corpus,
-#         id2word=id2word,
-#         num_topics=num_topics, 
-#         random_state=42,
-#         update_every=1,
-#         chunksize=100,
-#         passes=10,
-#         alpha='auto',
-#         per_word_topics=True
-#     )
+def LDA_model(texts):
 
-#     topic_distributions = [lda_model[row[text_column]] for i, row in df.iterrows()]
-#     sorted_topic_distributions = [[k, v] for d in topic_distributions for k, v in sorted(d.items(), key=lambda item: item[1])]
-#     topic_probs = [d[0] for d in sorted_topic_distributions]
-#     topics = [d[0] for d in topic_probs]
-#     probs = [d[1] for d in topic_probs]
+    #vectorize text
+    vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    X = vectorizer.fit_transform(texts)
 
-#     keywords = [[t for t, score in ldamodel.show_topic(i, topn=processing_config['n_keywords'])] for i in range(lda_model.num_topics)]
+    #initialize and fit model
+    lda = LatentDirichletAllocation(
+    	n_components=int(processing_config['topic_reduction']),
+        learning_method='online',
+		random_state=42,
+		max_iter=100,
+		n_jobs=2
+	)
+    lda.fit(X)
 
-#     keyword_df = pd.DataFrame(data={'topic_id': range(lda_model.num_topics), 'keywords': keywords})
+    #
+    outputs = [LDA_inference(lda, vectorizer, range(lda.components_.shape[0]), text) for text in texts]
+    topics, probs = [t for t, p in outputs], [p for t, p in outputs]
+    components_df = pd.DataFrame(lda.components_, columns=vectorizer.get_feature_names_out())
 
-#     index_column = processing_config['index_column']
-#     if index_column == 'None':
-#         idx = range(len(df))
-#     else:
-#         idx = df[index_column].tolist()
-    
-#     return idx, topics, probs, keywords, keyword_df
+    #get keywords per topic
+    keywords = []
+    topic_idx = range(components_df.shape[0])
+    for topic in topic_idx:
+        tmp = components_df.iloc[topic]
+        keywords.append(tmp.nlargest(int(processing_config['n_keywords'])).index.tolist())
+
+    #get text indices
+    if processing_config['index_column'] == 'None':
+        idx = list(range(len(texts)))
+    elif input_config['input_format'] == 'txt':
+        idx = df['filename'].tolist()
+    else:
+        idx = df[processing_config['index_column']].tolist()
+
+    #create df with keywords per topic
+    keyword_df = pd.DataFrame(data={
+        'idx': topic_idx,
+        'keywords': keywords,
+    })
+
+    return idx, topics, probs, keywords, keyword_df
 
 def load_data(in_dir, input_format):
 
     """Load data. Valid formats are .csv/.xlsx file, or directory of .txt files"""
 
     if input_format == 'csv': #csv file
-        df = pd.read_csv(in_dir)[:1000]
+        df = pd.read_csv(in_dir)[1000:2000]
 
     elif input_format == 'xlsx': #excel file
         df = pd.read_excel(in_dir)
@@ -157,6 +175,55 @@ def load_data(in_dir, input_format):
             })
     
     return df
+
+def nmf_inference(model, vectorizer, topics, text):
+    vectorized_text = vectorizer.transform([text])
+    scores = model.transform(vectorized_text)
+
+    return topics[np.argmax(scores)], max(scores[0])
+
+def NMF_model(texts):
+
+    vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    X = vectorizer.fit_transform(texts)
+
+    nmf = NMF(
+        n_components=int(processing_config['topic_reduction']), 
+        init='random', 
+        random_state=42
+    )
+
+    nmf.fit(X)
+
+    outputs = [nmf_inference(nmf, vectorizer, range(nmf.components_.shape[0]), text) for text in texts]
+    topics, probs = [t for t, p in outputs], [p for t, p in outputs]
+    components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names_out())
+
+    #get keywords per topic
+    keywords = []
+    topic_idx = range(components_df.shape[0])
+    for topic in topic_idx:
+        tmp = components_df.iloc[topic]
+        keywords.append(tmp.nlargest(int(processing_config['n_keywords'])).index.tolist())
+
+    #get text indices
+    if processing_config['index_column'] == 'None':
+        idx = list(range(len(texts)))
+    elif input_config['input_format'] == 'txt':
+        idx = df['filename'].tolist()
+    else:
+        idx = df[processing_config['index_column']].tolist()
+
+    #create df with keywords per topic
+    keyword_df = pd.DataFrame(data={
+        'idx': topic_idx,
+        'keywords': keywords,
+    })
+
+    return idx, topics, probs, keywords, keyword_df
+
+
+
 
 def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase): #to do: custom stop word list
 
@@ -231,7 +298,7 @@ def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
 
         result = []
         n = 1
-        while n <= upper_n:
+        while n <= int(upper_n):
             for gram in ngrams(text.split(' '), n):
                 result.append(' '.join(gram).strip())
             n += 1
@@ -309,12 +376,12 @@ def top_2_vec(df, text_column):
         topics = model.doc_top_reduced.tolist()
         probs = model.doc_dist_reduced.tolist()
     
-    if processing_config['index_column'] != 'None':
-        idx = df[processing_config['index_column']]
-    elif 'filename' in df.columns:
+    if processing_config['index_column'] == 'None':
+        idx = list(range(len(df)))
+    elif input_config['input_format'] == 'txt':
         idx = df['filename'].tolist()
     else:
-        idx = list(range(0, len(df)))
+        idx = df[processing_config['index_column']].tolist()
     
     return idx, topics, probs, keywords, keyword_df
 

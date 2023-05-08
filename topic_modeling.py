@@ -39,11 +39,20 @@ def main():
     if processing_config['algorithm'] == 'BERTopic':
         idx, topics, probs, keywords, keyword_df = BERT_topic(df, text_column)
     
-    # elif processing_config['algorithm'] == 'LDA':
-    #     idx, topics, probs, keywords, keyword_df = LDA_model(df, text_column)
+    elif processing_config['algorithm'] == 'LDA':
+        idx, topics, probs, keywords, keyword_df = LDA_model(df[text_column])
+    
+    elif processing_config['algorithm'] == 'NMF':
+        idx, topics, probs, keywords, keyword_df = NMF_model(df[text_column])
     
     elif processing_config['algorithm'] == 'Top2Vec':
         idx, topics, probs, keywords, keyword_df = top_2_vec(df, text_column)
+
+    #idx: [indices of the input texts]
+    #topics: [main predicted topic per text id]
+    #probs: [probability for predicted topic]
+    #keywords: [[keywords for topic1], [keywords for topic2], ...]
+    #keyword_df: rows=topic, columns=keywords (list of tokens)
 
 #EVALUATION____________________________________________________________________________________
     texts = [doc.split() for doc in df[text_column]]
@@ -65,7 +74,6 @@ def main():
     #ANNOTATIONS
     data = {'id': idx, 'topic': topics, 'score': probs}
     topic_df = pd.DataFrame(data=data)
-    topic_df = topic_df.astype({"id": 'int64', "topic": 'int64', "score": float}, errors='raise')
     topic_df.sort_values(by='id', inplace=True)
     topic_df.to_csv(os.path.join(output_config['output_dir'], 'topic_scores.csv'), index=False)
 
