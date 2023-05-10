@@ -5,3 +5,7 @@ numpy==1.21.6
 transformers==4.16.2
 sentence-transformers==2.2.0
 octis==1.11.1
+regex==2.5.123
+nltk==3.8.1
+sklearn==1.2.2
+gensim==4.3.1
