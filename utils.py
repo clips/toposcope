@@ -30,7 +30,17 @@ config_object = ConfigParser()
 config_object.read('config.ini')
 input_config = config_object["INPUT_CONFIG"] 
 output_config = config_object["OUTPUT_CONFIG"]
-processing_config = config_object["PROCESSING_CONFIG"]
+
+if input_config['algorithm'] =='LDA':
+    processing_config = config_object["LDA_CONFIG"]
+elif input_config['algorithm'] =='NMF':
+    processing_config = config_object["NMF_CONFIG"]
+elif input_config['algorithm'] =='BERTopic':
+    processing_config = config_object["BERTOPIC_CONFIG"]
+elif input_config['algorithm'] =='Top2Vec':
+    processing_config = config_object["TOP2VEC_CONFIG"]
+else:
+    raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
 
 #_____________________________________________________________________________________________
 def BERT_topic(df, text_column):
@@ -102,6 +112,7 @@ def coherence(topics, texts):
     return coherence_score
 
 def LDA_inference(model, vectorizer, topics, text):
+
     vectorized_text = vectorizer.transform([text])
     scores = model.transform(vectorized_text)
 
@@ -115,7 +126,7 @@ def LDA_model(texts):
 
     #initialize and fit model
     lda = LatentDirichletAllocation(
-    	n_components=int(processing_config['topic_reduction']),
+    	n_components=int(processing_config['n_components']),
         learning_method='online',
 		random_state=42,
 		max_iter=100,
@@ -123,7 +134,6 @@ def LDA_model(texts):
 	)
     lda.fit(X)
 
-    #
     outputs = [LDA_inference(lda, vectorizer, range(lda.components_.shape[0]), text) for text in texts]
     topics, probs = [t for t, p in outputs], [p for t, p in outputs]
     components_df = pd.DataFrame(lda.components_, columns=vectorizer.get_feature_names_out())
@@ -188,7 +198,7 @@ def NMF_model(texts):
     X = vectorizer.fit_transform(texts)
 
     nmf = NMF(
-        n_components=int(processing_config['topic_reduction']), 
+        n_components=int(processing_config['n_components']), 
         init='random', 
         random_state=42
     )
@@ -222,10 +232,7 @@ def NMF_model(texts):
 
     return idx, topics, probs, keywords, keyword_df
 
-
-
-
-def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase): #to do: custom stop word list
+def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase):
 
     """Create Spacy doc from input. 
     Lemmatize and/or remove stopwords (incl. punctuation) if requested."""
@@ -384,5 +391,3 @@ def top_2_vec(df, text_column):
         idx = df[processing_config['index_column']].tolist()
     
     return idx, topics, probs, keywords, keyword_df
-
-

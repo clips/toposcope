@@ -12,7 +12,17 @@ def main():
     config_object.read('config.ini')
     input_config = config_object["INPUT_CONFIG"] 
     output_config = config_object["OUTPUT_CONFIG"]
-    processing_config = config_object["PROCESSING_CONFIG"]
+    
+    if input_config['algorithm'] == 'LDA':
+        processing_config = config_object["LDA_CONFIG"]
+    elif input_config['algorithm'] == 'NMF':
+        processing_config = config_object["NMF_CONFIG"]
+    elif input_config['algorithm'] == 'BERTopic':
+        processing_config = config_object["BERTOPIC_CONFIG"]
+    elif input_config['algorithm'] =='Top2Vec':
+        processing_config = config_object["TOP2VEC_CONFIG"]
+    else:
+        raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
 
 #LOAD_DATA_____________________________________________________________________________________
     in_dir = input_config['input']
@@ -36,21 +46,21 @@ def main():
         os.mkdir(output_config['output_dir'])
 
 #FIT_MODEL_____________________________________________________________________________________
-    if processing_config['algorithm'] == 'BERTopic':
+    if input_config['algorithm'] == 'BERTopic':
         idx, topics, probs, keywords, keyword_df = BERT_topic(df, text_column)
     
-    elif processing_config['algorithm'] == 'LDA':
+    elif input_config['algorithm'] == 'LDA':
         idx, topics, probs, keywords, keyword_df = LDA_model(df[text_column])
     
-    elif processing_config['algorithm'] == 'NMF':
+    elif input_config['algorithm'] == 'NMF':
         idx, topics, probs, keywords, keyword_df = NMF_model(df[text_column])
     
-    elif processing_config['algorithm'] == 'Top2Vec':
+    elif input_config['algorithm'] == 'Top2Vec':
         idx, topics, probs, keywords, keyword_df = top_2_vec(df, text_column)
 
     #idx: [indices of the input texts]
     #topics: [main predicted topic per text id]
-    #probs: [probability for predicted topic]
+    #probs: [probability for main_topic in topics]
     #keywords: [[keywords for topic1], [keywords for topic2], ...]
     #keyword_df: rows=topic, columns=keywords (list of tokens)
 
