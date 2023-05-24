@@ -47,22 +47,18 @@ def main():
 
 #FIT_MODEL_____________________________________________________________________________________
     if input_config['algorithm'] == 'BERTopic':
-        idx, topics, probs, keywords, keyword_df = BERT_topic(df, text_column)
+        topic_doc_matrix, keyword_df = BERT_topic(df, text_column)
     
     elif input_config['algorithm'] == 'LDA':
-        idx, topics, probs, keywords, keyword_df = LDA_model(df[text_column])
+        topic_doc_matrix, keyword_df = LDA_model(df[text_column])
     
     elif input_config['algorithm'] == 'NMF':
-        idx, topics, probs, keywords, keyword_df = NMF_model(df[text_column])
+        topic_doc_matrix, keyword_df = NMF_model(df[text_column])
     
     elif input_config['algorithm'] == 'Top2Vec':
-        idx, topics, probs, keywords, keyword_df = top_2_vec(df, text_column)
+        topic_doc_matrix, keyword_df = top_2_vec(df, text_column)
 
-    #idx: [indices of the input texts]
-    #topics: [main predicted topic per text id]
-    #probs: [probability for main_topic in topics]
-    #keywords: [[keywords for topic1], [keywords for topic2], ...]
-    #keyword_df: rows=topic, columns=keywords (list of tokens)
+    keywords = keyword_df.keywords.tolist()
 
 #EVALUATION____________________________________________________________________________________
     texts = [doc.split() for doc in df[text_column]]
@@ -82,10 +78,7 @@ def main():
     keyword_df.to_csv(os.path.join(output_config['output_dir'], 'keywords_per_topic.csv'), index=False)
 
     #ANNOTATIONS
-    data = {'id': idx, 'topic': topics, 'score': probs}
-    topic_df = pd.DataFrame(data=data)
-    topic_df.sort_values(by='id', inplace=True)
-    topic_df.to_csv(os.path.join(output_config['output_dir'], 'topic_scores.csv'), index=False)
+    topic_doc_matrix.to_csv(os.path.join(output_config['output_dir'], 'topic_doc_matrix.csv'), index=False)
 
     #VISUALIZATION (to do)
     #   - wordclouds per topic

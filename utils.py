@@ -6,11 +6,13 @@ from configparser import ConfigParser
 import spacy, regex
 import pandas as pd
 import numpy as np
+import hdbscan
 
 from nltk.util import ngrams
 from nltk.corpus import stopwords
 from string import punctuation
 from sklearn.feature_extraction.text import CountVectorizer
+from collections import OrderedDict
 
 from gensim.corpora import Dictionary
 from gensim.models import CoherenceModel
@@ -71,13 +73,15 @@ def BERT_topic(df, text_column):
         seed_topic_list=seed_topic_list,
         #embedding_model=embedding_model, 
         nr_topics=int(processing_config['topic_reduction']),
+        calculate_probabilities=True,
     )
 
     topics, probs = topic_model.fit_transform(df[text_column].to_numpy())
+
     topic_idx = topic_model.get_topic_info()['Topic']
     keywords = []
 
-    for i in topic_idx:
+    for i in topic_idx: 
         topic_keywords = [x[0] for x in topic_model.get_topic(i)]
         topic_keywords = ', '.join(topic_keywords)
         keywords.append(topic_keywords)
@@ -93,8 +97,11 @@ def BERT_topic(df, text_column):
         idx = df['filename'].tolist()
     else:
         idx = df[processing_config['index_column']].tolist()
+
+    topic_doc_matrix = pd.DataFrame(probs)
+    topic_doc_matrix.insert(loc=0, column='id', value=idx)
     
-    return idx, topics, probs, keywords, keyword_df
+    return topic_doc_matrix, keyword_df
 
 def coherence(topics, texts):
 
@@ -110,13 +117,6 @@ def coherence(topics, texts):
     coherence_score = round(cm.get_coherence(), 3)
 
     return coherence_score
-
-def LDA_inference(model, vectorizer, topics, text):
-
-    vectorized_text = vectorizer.transform([text])
-    scores = model.transform(vectorized_text)
-
-    return topics[np.argmax(scores)], max(scores[0])
 
 def LDA_model(texts):
 
@@ -134,13 +134,14 @@ def LDA_model(texts):
 	)
     lda.fit(X)
 
-    outputs = [LDA_inference(lda, vectorizer, range(lda.components_.shape[0]), text) for text in texts]
-    topics, probs = [t for t, p in outputs], [p for t, p in outputs]
+    #calculate probabilities per doc/topic
+    scores = lda.transform(X)
     components_df = pd.DataFrame(lda.components_, columns=vectorizer.get_feature_names_out())
 
     #get keywords per topic
     keywords = []
     topic_idx = range(components_df.shape[0])
+
     for topic in topic_idx:
         tmp = components_df.iloc[topic]
         keywords.append(tmp.nlargest(int(processing_config['n_keywords'])).index.tolist())
@@ -153,13 +154,20 @@ def LDA_model(texts):
     else:
         idx = df[processing_config['index_column']].tolist()
 
-    #create df with keywords per topic
+    #create doc_topic df
+    data = OrderedDict()
+    data["idx"] = idx
+    for t in topic_idx:
+        data[str(t)] = [scores[i][t] for i in range(len(scores))] 
+    topic_doc_matrix = pd.DataFrame(data=data)
+
+    #create keyword_df with keywords per topic
     keyword_df = pd.DataFrame(data={
         'idx': topic_idx,
         'keywords': keywords,
-    })
+    }) 
 
-    return idx, topics, probs, keywords, keyword_df
+    return topic_doc_matrix, keyword_df
 
 def load_data(in_dir, input_format):
 
@@ -186,12 +194,6 @@ def load_data(in_dir, input_format):
     
     return df
 
-def nmf_inference(model, vectorizer, topics, text):
-    vectorized_text = vectorizer.transform([text])
-    scores = model.transform(vectorized_text)
-
-    return topics[np.argmax(scores)], max(scores[0])
-
 def NMF_model(texts):
 
     vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
@@ -205,8 +207,7 @@ def NMF_model(texts):
 
     nmf.fit(X)
 
-    outputs = [nmf_inference(nmf, vectorizer, range(nmf.components_.shape[0]), text) for text in texts]
-    topics, probs = [t for t, p in outputs], [p for t, p in outputs]
+    scores = nmf.transform(X)
     components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names_out())
 
     #get keywords per topic
@@ -223,6 +224,13 @@ def NMF_model(texts):
         idx = df['filename'].tolist()
     else:
         idx = df[processing_config['index_column']].tolist()
+    
+    #create doc_topic df
+    data = OrderedDict()
+    data["idx"] = idx
+    for t in topic_idx:
+        data[str(t)] = [scores[i][t] for i in range(len(scores))] 
+    topic_doc_matrix = pd.DataFrame(data=data)
 
     #create df with keywords per topic
     keyword_df = pd.DataFrame(data={
@@ -230,7 +238,7 @@ def NMF_model(texts):
         'keywords': keywords,
     })
 
-    return idx, topics, probs, keywords, keyword_df
+    return topic_doc_matrix, keyword_df
 
 def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase):
 

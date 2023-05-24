@@ -2,6 +2,13 @@ from configparser import ConfigParser
 
 config_object = ConfigParser()
 
+config_object["INPUT_CONFIG"] = {
+    "algorithm": 'BERTopic', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
+    "input": '../data/frenk_train_no_labels.csv', #full path to input data
+    "input_format": 'csv', #'csv', 'xlsx', 'txt'
+    "text_column": 'text' #only relevant if input_format='csv' or 'xlsx'
+}
+
 config_object["BERTOPIC_CONFIG"] = {
     "model": '', #to do
     "topic_reduction": 0, #0 -> no reduction, 0< -> max. number of topics allowed
@@ -58,13 +65,6 @@ config_object["NMF_CONFIG"] = {
     "upper_ngram_range": 1, #upper ngram range for keywords, creates ngrams for range (1, n)
     "index_column": 'None', #column containing document indices to use for topic annotations (only relevant when using csv/xlsx as input)
     "lang": 'english' #'dutch', 'english'
-}
-
-config_object["INPUT_CONFIG"] = {
-    "algorithm": 'BERTopic', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
-    "input": '', #full path to input data
-    "input_format": 'csv', #'csv', 'xlsx', 'txt'
-    "text_column": 'text' #only relevant if input_format='csv' or 'xlsx'
 }
 
 config_object["OUTPUT_CONFIG"] = {
