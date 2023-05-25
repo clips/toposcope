@@ -51,7 +51,7 @@ def BERT_topic(df, text_column):
 
     #get base model
     if processing_config['model']:
-        embedding_model = pipeline("feature-extraction", model=base_model)
+        embedding_model = pipeline("feature-extraction", processing_config['model'])
     else:
         embedding_model = None
 
@@ -65,16 +65,28 @@ def BERT_topic(df, text_column):
         seed_topic_list = None
 
     #instantiate topic model object
-    topic_model = BERTopic(
-        n_gram_range=(1, int(processing_config['upper_ngram_range'])),
-        language=processing_config['lang'],
-        top_n_words=int(processing_config['n_keywords']),
-        min_topic_size=int(processing_config['min_topic_size']),
-        seed_topic_list=seed_topic_list,
-        #embedding_model=embedding_model, 
-        nr_topics=int(processing_config['topic_reduction']),
-        calculate_probabilities=True,
-    )
+    if embedding_model:
+        topic_model = BERTopic(
+            n_gram_range=(1, int(processing_config['upper_ngram_range'])),
+            language=processing_config['lang'],
+            top_n_words=int(processing_config['n_keywords']),
+            min_topic_size=int(processing_config['min_topic_size']),
+            seed_topic_list=seed_topic_list,
+            embedding_model=embedding_model, 
+            nr_topics=int(processing_config['topic_reduction']),
+            calculate_probabilities=True,
+        )
+    
+    else:
+        topic_model = BERTopic(
+            n_gram_range=(1, int(processing_config['upper_ngram_range'])),
+            language=processing_config['lang'],
+            top_n_words=int(processing_config['n_keywords']),
+            min_topic_size=int(processing_config['min_topic_size']),
+            seed_topic_list=seed_topic_list,
+            nr_topics=int(processing_config['topic_reduction']),
+            calculate_probabilities=True,
+        )
 
     topics, probs = topic_model.fit_transform(df[text_column].to_numpy())
 
@@ -323,7 +335,7 @@ def top_2_vec(df, text_column):
 
     "Top2Vec training pipeline"
 
-    base_model = processing_config['model']
+    embedding_model = processing_config['model']
 
     default_models = {
         'doc2vec', 
@@ -336,12 +348,17 @@ def top_2_vec(df, text_column):
         'paraphrase-multilingual-MiniLM-L12-v2'
     }
 
-    if not base_model:
-        base_model = 'doc2vec'
+    #get base model
+    if processing_config['model']:
+        embedding_model = processing_config['model']
+        if embedding_model not in default_models:
+            raise KeyError(
+                """embedding_model must be one of: 'doc2vec', 'universal-sentence-encoder', 'universal-sentence-encoder-large', 'universal-sentence-encoder-multilingual', 'universal-sentence-encoder-multilingual-large', 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', 'paraphrase-multilingual-MiniLM-L12-v2'"""
+                )
 
     model = Top2Vec(
         df[text_column].tolist(), 
-        embedding_model=base_model,
+        embedding_model=embedding_model,
         split_documents=False,
         min_count=50, #words occurring less frequently than 'min_count' are ignored
         tokenizer=tokenizer 
@@ -383,13 +400,7 @@ def top_2_vec(df, text_column):
     keyword_df = pd.DataFrame(data={'topic_id': topic_idx, 'keywords': keywords})
 
     #RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________    
-    if not reduced:
-        topics = model.doc_top.tolist()
-        probs = model.doc_dist.tolist()
-    
-    else:
-        topics = model.doc_top_reduced.tolist()
-        probs = model.doc_dist_reduced.tolist()
+    topic_nums, topic_scores, _, __ = model.get_documents_topics(list(range(len(df))), reduced=reduced, num_topics=n_topics)
     
     if processing_config['index_column'] == 'None':
         idx = list(range(len(df)))
@@ -398,4 +409,11 @@ def top_2_vec(df, text_column):
     else:
         idx = df[processing_config['index_column']].tolist()
     
-    return idx, topics, probs, keywords, keyword_df
+    #create doc_topic df
+    topic_doc_matrix = pd.DataFrame()
+    for i in range(len(topic_scores)):
+        row = {topic: score for topic, score in zip(topic_nums[i], topic_scores[i])}
+        topic_doc_matrix = topic_doc_matrix.append(row)
+    topic_doc_matrix.insert(loc=0, column='idx', value=idx)
+    
+    return topic_doc_matrix, keyword_df
