@@ -148,7 +148,7 @@ def LDA_model(texts):
 
     #calculate probabilities per doc/topic
     scores = lda.transform(X)
-    components_df = pd.DataFrame(lda.components_, columns=vectorizer.get_feature_names_out())
+    components_df = pd.DataFrame(lda.components_, columns=vectorizer.get_feature_names())
 
     #get keywords per topic
     keywords = []
@@ -220,7 +220,7 @@ def NMF_model(texts):
     nmf.fit(X)
 
     scores = nmf.transform(X)
-    components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names_out())
+    components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names())
 
     #get keywords per topic
     keywords = []
@@ -413,7 +413,7 @@ def top_2_vec(df, text_column):
     topic_doc_matrix = pd.DataFrame()
     for i in range(len(topic_scores)):
         row = {topic: score for topic, score in zip(topic_nums[i], topic_scores[i])}
-        topic_doc_matrix = topic_doc_matrix.append(row)
+        topic_doc_matrix = topic_doc_matrix.append(row, ignore_index=True)
     topic_doc_matrix.insert(loc=0, column='idx', value=idx)
     
     return topic_doc_matrix, keyword_df

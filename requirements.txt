@@ -1,12 +1,13 @@
 top2vec[indexing, sentence_encoders, sentence_transformers]==1.0.27
 pandas==1.4.0
-spacy==3.3.0
+spacy==3.5.3
+pydantic==1.10.9
 numpy==1.21.6
 transformers==4.16.2
 sentence-transformers==2.2.0
 octis==1.11.1
-regex==2.5.123
+regex==2023.5.5
 nltk==3.8.1
-sklearn==1.2.2
-gensim==4.3.1
+scikit-learn==0.24.2
+gensim==4.2.0
 bertopic==0.14.1
