@@ -39,21 +39,23 @@ def main():
     df[text_column] = df[text_column].apply(lambda x: preprocess(x, lemmatize, remove_stopwords, remove_punct, lowercase))
     
 #PREPARE_OUTPUT_DIR____________________________________________________________________________
+    dir_out = output_config['output_dir']
     if not int(output_config['overwrite_output_dir']):
-        assert os.path.exists(output_config['output_dir']) == False
+        assert os.path.exists(dir_out) == False
 
-    if not os.path.exists(output_config['output_dir']):
-        os.mkdir(output_config['output_dir'])
+    if not os.path.exists(dir_out):
+        os.mkdir(dir_out)
+        os.mkdir(dir_out+'/topic_term_weights/')
 
 #FIT_MODEL_____________________________________________________________________________________
     if input_config['algorithm'] == 'BERTopic':
-        topic_doc_matrix, keyword_df = BERT_topic(df, text_column)
+        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column)
     
     elif input_config['algorithm'] == 'LDA':
-        topic_doc_matrix, keyword_df = LDA_model(df[text_column])
+        topic_doc_matrix, keyword_df, topic_term_matrix = LDA_model(df[text_column])
     
     elif input_config['algorithm'] == 'NMF':
-        topic_doc_matrix, keyword_df = NMF_model(df[text_column])
+        topic_doc_matrix, keyword_df, topic_term_matrix = NMF_model(df[text_column])
     
     elif input_config['algorithm'] == 'Top2Vec':
         topic_doc_matrix, keyword_df = top_2_vec(df, text_column)
@@ -72,17 +74,21 @@ def main():
         'diversity': [diversity],
         'coherence': [coherence_score]
     })
-    eval_df.to_csv(os.path.join(output_config['output_dir'], 'evaluation.csv'), index=False)
+    eval_df.to_csv(os.path.join(dir_out, 'evaluation.csv'), index=False)
     
     #KEYWORDS PER TOPIC
-    keyword_df.to_csv(os.path.join(output_config['output_dir'], 'keywords_per_topic.csv'), index=False)
+    keyword_df.to_csv(os.path.join(dir_out, 'keywords_per_topic.csv'), index=False)
+
+    #TOPIC-TERM MATRIX
+    topic_term_matrix.to_csv(os.path.join(dir_out, 'topic_term_matrix.csv'))
 
     #ANNOTATIONS
-    topic_doc_matrix.to_csv(os.path.join(output_config['output_dir'], 'topic_doc_matrix.csv'), index=False)
+    topic_doc_matrix.to_csv(os.path.join(dir_out, 'topic_doc_matrix.csv'), index=False)
 
     #VISUALIZATION (to do)
     #   - wordclouds per topic
     #   - two-dimensional representation of documents/topic clusters
+    generate_bar_charts(topic_term_matrix, dir_out)
 
 #______________________________________________________________________________________________
 if __name__ == "__main__":

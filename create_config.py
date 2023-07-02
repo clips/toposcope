@@ -3,7 +3,7 @@ from configparser import ConfigParser
 config_object = ConfigParser()
 
 config_object["INPUT_CONFIG"] = {
-    "algorithm": 'Top2Vec', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
+    "algorithm": 'BERTopic', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
     "input": '', #full path to input data
     "input_format": 'csv', #'csv', 'xlsx', 'txt'
     "text_column": 'text' #only relevant if input_format='csv' or 'xlsx'

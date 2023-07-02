@@ -27,6 +27,9 @@ from top2vec import Top2Vec
 from bertopic import BERTopic
 from transformers.pipelines import pipeline
 
+#Visualization
+import plotly.graph_objects as go
+
 #load SpaCy and config_______________________________________________________________________
 config_object = ConfigParser()
 config_object.read('config.ini')
@@ -57,7 +60,6 @@ def BERT_topic(df, text_column):
 
     #check if seed topics were provided
     if processing_config['seed_topic_list']:
-
         with open(processing_config['seed_topic_list']) as f:
             lines = f.readlines()
             seed_topic_list = [[w.strip() for w in l.split(',')] for l in lines]
@@ -88,9 +90,10 @@ def BERT_topic(df, text_column):
             calculate_probabilities=True,
         )
 
-    topics, probs = topic_model.fit_transform(df[text_column].to_numpy())
+    _, probs = topic_model.fit_transform(df[text_column].to_numpy())
 
     topic_idx = topic_model.get_topic_info()['Topic']
+    
     keywords = []
 
     for i in topic_idx: 
@@ -112,8 +115,15 @@ def BERT_topic(df, text_column):
 
     topic_doc_matrix = pd.DataFrame(probs)
     topic_doc_matrix.insert(loc=0, column='id', value=idx)
+
+    #topic-term matrix
+    vocab = topic_model.vectorizer_model.get_feature_names()
+    topic_term_weights = topic_model.c_tf_idf_.toarray()
+    topic_term_matrix = pd.DataFrame(topic_term_weights)
+    topic_term_matrix.index = topic_idx
+    topic_term_matrix.columns = vocab
     
-    return topic_doc_matrix, keyword_df
+    return topic_doc_matrix, keyword_df, topic_term_matrix
 
 def coherence(topics, texts):
 
@@ -179,7 +189,32 @@ def LDA_model(texts):
         'keywords': keywords,
     }) 
 
-    return topic_doc_matrix, keyword_df
+    return topic_doc_matrix, keyword_df, components_df
+
+def generate_bar_charts(df, dir_out):
+
+    # Iterate over each topic in the dataframe
+    for topic in df.index:
+        topic_data = df.loc[topic].sort_values(ascending=False)[:20]
+        
+        # Create a horizontal bar chart using Plotly
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=topic_data.values,
+            y=topic_data.index,
+            orientation='h',
+        ))
+        
+        # Set the title and axis labels
+        fig.update_layout(
+            title=f'Topic {topic}',
+            xaxis_title='Weight',
+            yaxis_title='Term',
+            yaxis=dict(autorange="reversed"),
+        )
+        
+        # Display the bar chart
+        fig.write_image(dir_out + '/topic_term_weights/' + f'topic_{topic}_term_weights.png')
 
 def load_data(in_dir, input_format):
 
@@ -250,7 +285,7 @@ def NMF_model(texts):
         'keywords': keywords,
     })
 
-    return topic_doc_matrix, keyword_df
+    return topic_doc_matrix, keyword_df, components_df
 
 def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase):
 
@@ -318,6 +353,7 @@ def proportion_unique_words(topics, topk=10):
             unique_words = unique_words.union(set(topic[:topk]))
         puw = len(unique_words) / (topk * len(topics))
         return round(puw, 3)
+
 
 def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
         
