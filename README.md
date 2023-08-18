@@ -1,3 +1,5 @@
+### Introduction
+
 This repository contains code for the topic modeling pipeline for the CLARIAH-VL DTADP. 
 
 ### Installation
