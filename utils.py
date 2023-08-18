@@ -26,9 +26,12 @@ from top2vec import Top2Vec
 #BERTopic
 from bertopic import BERTopic
 from transformers.pipelines import pipeline
+from sentence_transformers import SentenceTransformer
 
-#Visualization
+#Visualizations
 import plotly.graph_objects as go
+import umap
+import matplotlib.pyplot as plt
 
 #load SpaCy and config_______________________________________________________________________
 config_object = ConfigParser()
@@ -48,7 +51,7 @@ else:
     raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
 
 #_____________________________________________________________________________________________
-def BERT_topic(df, text_column):
+def BERT_topic(df, text_column, dir_out):
 
     """Training pipeline for BERTopic"""
 
@@ -90,7 +93,7 @@ def BERT_topic(df, text_column):
             calculate_probabilities=True,
         )
 
-    _, probs = topic_model.fit_transform(df[text_column].to_numpy())
+    topics, probs = topic_model.fit_transform(df[text_column].to_numpy())
 
     topic_idx = topic_model.get_topic_info()['Topic']
     
@@ -140,7 +143,7 @@ def coherence(topics, texts):
 
     return coherence_score
 
-def LDA_model(texts):
+def LDA_model(texts, dir_out):
 
     #vectorize text
     vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
@@ -189,6 +192,23 @@ def LDA_model(texts):
         'keywords': keywords,
     }) 
 
+    # Generate two-dimensional UMAP visualization of document topics
+    # Reduce dimensionality using UMAP
+    umap_model = umap.UMAP(n_components=2, random_state=42)
+    umap_embeddings = umap_model.fit_transform(scores)
+
+    # Create a scatter plot
+    plt.figure(figsize=(10, 8))
+    for i, label in enumerate(topic_idx):
+        plt.scatter(umap_embeddings[:, 0][scores.argmax(axis=1) == i],
+                    umap_embeddings[:, 1][scores.argmax(axis=1) == i],
+                    label=label)
+        
+    plt.title('UMAP Visualization of Documents per Topic with LDA')
+    plt.legend()
+    plt.savefig(os.path.join(dir_out, 'UMAP_visualization.png'))
+    plt.show()
+
     return topic_doc_matrix, keyword_df, components_df
 
 def generate_bar_charts(df, dir_out):
@@ -216,12 +236,42 @@ def generate_bar_charts(df, dir_out):
         # Display the bar chart
         fig.write_image(dir_out + '/topic_term_weights/' + f'topic_{topic}_term_weights.png')
 
+def plot_document_topics_umap(model, label_names, output_dir):
+    """
+    Generate a 2D plot of documents representing their topics using UMAP.
+
+    Parameters:
+    model (sklearn.decomposition.LatentDirichletAllocation): Trained LDA model.
+    label_names (list): List of label names corresponding to the topics.
+    output_dir (str): Directory where the plot should be saved.
+
+    Returns:
+    None
+    """
+    # Get topic proportions for each document
+    document_topics = model.transform(YOUR_DOCUMENTS)  # Replace with your document data
+
+    # Reduce dimensionality using UMAP
+    umap_model = umap.UMAP(n_components=2, random_state=42)
+    umap_embeddings = umap_model.fit_transform(document_topics)
+
+    # Create a scatter plot
+    plt.figure(figsize=(10, 8))
+    for i, label in enumerate(label_names):
+        plt.scatter(umap_embeddings[:, 0][document_topics.argmax(axis=1) == i],
+                    umap_embeddings[:, 1][document_topics.argmax(axis=1) == i],
+                    label=label)
+    plt.title('Document Topics UMAP')
+    plt.legend()
+    plt.savefig(output_dir)
+    plt.show()
+
 def load_data(in_dir, input_format):
 
     """Load data. Valid formats are .csv/.xlsx file, or directory of .txt files"""
 
     if input_format == 'csv': #csv file
-        df = pd.read_csv(in_dir)[1000:2000]
+        df = pd.read_csv(in_dir)[1000:3000]
 
     elif input_format == 'xlsx': #excel file
         df = pd.read_excel(in_dir)
@@ -241,7 +291,7 @@ def load_data(in_dir, input_format):
     
     return df
 
-def NMF_model(texts):
+def NMF_model(texts, dir_out):
 
     vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
     X = vectorizer.fit_transform(texts)
@@ -284,6 +334,23 @@ def NMF_model(texts):
         'idx': topic_idx,
         'keywords': keywords,
     })
+
+    # Generate two-dimensional UMAP visualization of document topics
+    # Reduce dimensionality using UMAP
+    umap_model = umap.UMAP(n_components=2, random_state=42)
+    umap_embeddings = umap_model.fit_transform(scores)
+
+    # Create a scatter plot
+    plt.figure(figsize=(10, 8))
+    for i, label in enumerate(topic_idx):
+        plt.scatter(umap_embeddings[:, 0][scores.argmax(axis=1) == i],
+                    umap_embeddings[:, 1][scores.argmax(axis=1) == i],
+                    label=label)
+        
+    plt.title('UMAP Visualization of Documents per Topic with NMF')
+    plt.legend()
+    plt.savefig(os.path.join(dir_out, 'UMAP_visualization.png'))
+    plt.show()
 
     return topic_doc_matrix, keyword_df, components_df
 
@@ -367,7 +434,7 @@ def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
             n += 1
         return result
 
-def top_2_vec(df, text_column):
+def top_2_vec(df, text_column, dir_out):
 
     "Top2Vec training pipeline"
 

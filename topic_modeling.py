@@ -49,16 +49,16 @@ def main():
 
 #FIT_MODEL_____________________________________________________________________________________
     if input_config['algorithm'] == 'BERTopic':
-        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column)
+        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out)
     
     elif input_config['algorithm'] == 'LDA':
-        topic_doc_matrix, keyword_df, topic_term_matrix = LDA_model(df[text_column])
+        topic_doc_matrix, keyword_df, topic_term_matrix = LDA_model(df[text_column], dir_out)
     
     elif input_config['algorithm'] == 'NMF':
-        topic_doc_matrix, keyword_df, topic_term_matrix = NMF_model(df[text_column])
+        topic_doc_matrix, keyword_df, topic_term_matrix = NMF_model(df[text_column], dir_out)
     
     elif input_config['algorithm'] == 'Top2Vec':
-        topic_doc_matrix, keyword_df = top_2_vec(df, text_column)
+        topic_doc_matrix, keyword_df = top_2_vec(df, text_column, dir_out)
 
     keywords = keyword_df.keywords.tolist()
 
@@ -87,7 +87,6 @@ def main():
 
     #VISUALIZATION (to do)
     #   - wordclouds per topic
-    #   - two-dimensional representation of documents/topic clusters
     generate_bar_charts(topic_term_matrix, dir_out)
 
 #______________________________________________________________________________________________
