@@ -10,8 +10,6 @@ Clone the repository: ```git clone https://github.com/LemmensJens/CLARIAH-topic.
 
 Afterwards, install the requirements with ```pip install -r requirements.txt```. 
 
-Then, install Spacy's models with ```python -m spacy download nl_core_news_sm``` and ```python -m spacy download en_core_web_sm```. 
-
 Finally, download NLTK's stopwords with ```python -m nltk.downloader stopwords```.
 
 ### Usage
