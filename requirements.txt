@@ -15,3 +15,5 @@ kaleido==0.2.1
 huggingface-hub==0.10.1
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
 nl_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_sm-3.5.0/nl_core_news_sm-3.5.0-py3-none-any.whl
+de_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.5.0/de_core_news_sm-3.5.0-py3-none-any.whl
+fr_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.5.0/fr_core_news_sm-3.5.0-py3-none-any.whl

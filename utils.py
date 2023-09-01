@@ -1,5 +1,5 @@
 #system
-import os
+import os, zipfile
 from configparser import ConfigParser
 
 #preprocessing
@@ -108,16 +108,14 @@ def BERT_topic(df, text_column, dir_out):
         'idx': topic_idx,
         'keywords': keywords,
     })
-
-    if processing_config['index_column'] == 'None':
-        idx = list(range(len(df)))
-    elif input_config['input_format'] == 'txt':
+    
+    if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = df[processing_config['index_column']].tolist()
+        idx = list(df.index())
 
     topic_doc_matrix = pd.DataFrame(probs)
-    topic_doc_matrix.insert(loc=0, column='id', value=idx)
+    topic_doc_matrix.insert(loc=0, column='idx', value=idx)
 
     #topic-term matrix
     vocab = topic_model.vectorizer_model.get_feature_names()
@@ -172,12 +170,10 @@ def LDA_model(texts, dir_out):
         keywords.append(tmp.nlargest(int(processing_config['n_keywords'])).index.tolist())
 
     #get text indices
-    if processing_config['index_column'] == 'None':
-        idx = list(range(len(texts)))
-    elif input_config['input_format'] == 'txt':
+    if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = df[processing_config['index_column']].tolist()
+        idx = list(df.index())
 
     #create doc_topic df
     data = OrderedDict()
@@ -266,28 +262,27 @@ def plot_document_topics_umap(model, label_names, output_dir):
     plt.savefig(output_dir)
     plt.show()
 
-def load_data(in_dir, input_format):
+def load_data(in_dir, input_format, delimiter):
 
-    """Load data. Valid formats are .csv/.xlsx file, or directory of .txt files"""
+    """Load data. Valid formats are .csv file or directory of .txt files"""
 
-    if input_format == 'csv': #csv file
-        df = pd.read_csv(in_dir)[1000:3000]
+    if input_format == 'csv': # csv file
+        df = pd.read_csv(in_dir, delimiter=delimiter)[1000:3000]
 
-    elif input_format == 'xlsx': #excel file
-        df = pd.read_excel(in_dir)
+    elif input_format == 'zip': # zip folder with txt
+        df = pd.DataFrame(columns=['filename', 'text'])
 
-    else: #folder with txt
-        filenames = os.listdir(in_dir)
-        texts = []
-        for fn in filenames:
-            with open(os.path.join(in_dir, fn)) as f:
-                text = ' '.join(f.readlines())
-                text = ' '.join(text.split())
-            texts.append(text)
-        df = pd.DataFrame(data={
-            'filename': filenames,
-            'text':texts
-            })
+        with zipfile.ZipFile(in_dir, 'r') as zip_file:
+            for file_info in zip_file.infolist():
+                if file_info.filename.endswith('.txt'):
+                    filename = os.path.basename(file_info.filename)
+                    with zip_file.open(file_info) as txt_file:
+                        text = txt_file.read().decode('utf-8')  # Assuming UTF-8 encoding
+                    df = df.append({'filename': filename, 'text': text}, ignore_index=True)
+        df = df.sort_values('filename')
+    
+    else:
+        raise ValueError('Please specify a valid input format: "zip" or "csv".')
     
     return df
 
@@ -315,12 +310,10 @@ def NMF_model(texts, dir_out):
         keywords.append(tmp.nlargest(int(processing_config['n_keywords'])).index.tolist())
 
     #get text indices
-    if processing_config['index_column'] == 'None':
-        idx = list(range(len(texts)))
-    elif input_config['input_format'] == 'txt':
+    if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = df[processing_config['index_column']].tolist()
+        idx = list(df.index())
     
     #create doc_topic df
     data = OrderedDict()
@@ -354,7 +347,7 @@ def NMF_model(texts, dir_out):
 
     return topic_doc_matrix, keyword_df, components_df
 
-def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase):
+def preprocess(text, lemmatize, remove_stopwords, remove_custom_stopwords, remove_punct, lowercase):
 
     """Create Spacy doc from input. 
     Lemmatize and/or remove stopwords (incl. punctuation) if requested."""
@@ -366,8 +359,12 @@ def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase):
         nlp = spacy.load("nl_core_news_sm")
     elif lang == 'english':
         nlp = spacy.load("en_core_web_sm")
+    elif lang == 'french':
+        nlp = spacy.load('fr_core_news_sm')
+    elif lang == 'german':
+        nlp = spacy.load('de_core_news_sm')
     else:
-        raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english'.")
+        raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english', 'french', 'german'.")
 
     #create doc object
     doc = nlp(text)
@@ -383,14 +380,13 @@ def preprocess(text, lemmatize, remove_stopwords, remove_punct, lowercase):
         text = text.lower()
     
     #remove stopwords
-    custom_stopword_dir = processing_config['custom_stopword_list']
-
     if remove_stopwords:
         stop_words = stopwords.words(lang)
         text = ' '.join([t for t in text.split() if t not in stop_words])
 
     #custom stop word list
-    if custom_stopword_dir:
+    custom_stopword_dir = processing_config['custom_stopword_list']
+    if custom_stopword_dir.strip() and remove_custom_stopwords:
         with open(custom_stopword_dir) as x:
             lines = x.readlines()
             custom_stopwords = [l.strip() for l in lines]
@@ -505,12 +501,10 @@ def top_2_vec(df, text_column, dir_out):
     #RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________    
     topic_nums, topic_scores, _, __ = model.get_documents_topics(list(range(len(df))), reduced=reduced, num_topics=n_topics)
     
-    if processing_config['index_column'] == 'None':
-        idx = list(range(len(df)))
-    elif input_config['input_format'] == 'txt':
+    if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = df[processing_config['index_column']].tolist()
+        idx = list(df.index())
     
     #create doc_topic df
     topic_doc_matrix = pd.DataFrame()

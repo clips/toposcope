@@ -27,16 +27,20 @@ def main():
 #LOAD_DATA_____________________________________________________________________________________
     in_dir = input_config['input']
     input_format = input_config['input_format']
-    df = load_data(in_dir, input_format)
+    delimiter = input_config['delimiter']
+    df = load_data(in_dir, input_format, delimiter)
     text_column = input_config['text_column']
+    if not text_column.strip():
+        text_column = 'text'
             
 #PREPROCESSING_________________________________________________________________________________
     lemmatize = int(processing_config['lemmatize'])
     remove_stopwords = int(processing_config['remove_stopwords'])
+    remove_custom_stopwords = int(processing_config['remove_custom_stopwords'])
     remove_punct = int(processing_config['remove_punct'])
     lowercase = int(processing_config['lowercase'])
 
-    df[text_column] = df[text_column].apply(lambda x: preprocess(x, lemmatize, remove_stopwords, remove_punct, lowercase))
+    df[text_column] = df[text_column].apply(lambda x: preprocess(x, lemmatize, remove_stopwords, remove_custom_stopwords, remove_punct, lowercase))
     
 #PREPARE_OUTPUT_DIR____________________________________________________________________________
     dir_out = output_config['output_dir']
