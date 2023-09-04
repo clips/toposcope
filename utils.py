@@ -112,7 +112,7 @@ def BERT_topic(df, text_column, dir_out):
     if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = list(df.index())
+        idx = list(df.index)
 
     topic_doc_matrix = pd.DataFrame(probs)
     topic_doc_matrix.insert(loc=0, column='idx', value=idx)
@@ -173,7 +173,7 @@ def LDA_model(texts, dir_out):
     if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = list(df.index())
+        idx = list(df.index)
 
     #create doc_topic df
     data = OrderedDict()
@@ -313,7 +313,7 @@ def NMF_model(texts, dir_out):
     if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = list(df.index())
+        idx = list(df.index)
     
     #create doc_topic df
     data = OrderedDict()
@@ -504,7 +504,7 @@ def top_2_vec(df, text_column, dir_out):
     if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = list(df.index())
+        idx = list(df.index)
     
     #create doc_topic df
     topic_doc_matrix = pd.DataFrame()
