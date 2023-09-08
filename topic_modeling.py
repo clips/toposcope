@@ -25,6 +25,7 @@ def main():
         raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
 
 #LOAD_DATA_____________________________________________________________________________________
+    print("Loading data")
     in_dir = input_config['input']
     input_format = input_config['input_format']
     delimiter = input_config['delimiter']
@@ -34,6 +35,7 @@ def main():
         text_column = 'text'
             
 #PREPROCESSING_________________________________________________________________________________
+    print('Preprocessing')
     lemmatize = int(processing_config['lemmatize'])
     remove_stopwords = int(processing_config['remove_stopwords'])
     remove_custom_stopwords = int(processing_config['remove_custom_stopwords'])
@@ -52,6 +54,7 @@ def main():
         os.mkdir(dir_out+'/topic_term_weights/')
 
 #FIT_MODEL_____________________________________________________________________________________
+    print("Fitting model")
     if input_config['algorithm'] == 'BERTopic':
         topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out)
     
@@ -62,17 +65,18 @@ def main():
         topic_doc_matrix, keyword_df, topic_term_matrix = NMF_model(df[text_column], dir_out)
     
     elif input_config['algorithm'] == 'Top2Vec':
-        topic_doc_matrix, keyword_df = top_2_vec(df, text_column, dir_out)
+        topic_doc_matrix, keyword_df, topic_term_matrix = top_2_vec(df, text_column, dir_out)
 
     keywords = keyword_df.keywords.tolist()
 
 #EVALUATION____________________________________________________________________________________
+    print('Evaluating model')
     texts = [doc.split() for doc in df[text_column]]
     coherence_score = coherence(keywords, texts)
     diversity = proportion_unique_words(keywords)
 
 #SAVE_OUTPUT__________________________________________________________________________________
-
+    print('Generating output')
     #EVALUATION
     eval_df = pd.DataFrame(data={
         'diversity': [diversity],
@@ -90,9 +94,8 @@ def main():
     topic_doc_matrix.to_csv(os.path.join(dir_out, 'topic_doc_matrix.csv'), index=False)
 
     #VISUALIZATION (to do)
-    #   - wordclouds per topic
     generate_bar_charts(topic_term_matrix, dir_out)
-
+    print('Done')
 #______________________________________________________________________________________________
 if __name__ == "__main__":
     main()

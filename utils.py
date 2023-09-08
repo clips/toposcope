@@ -3,7 +3,7 @@ import os, zipfile
 from configparser import ConfigParser
 
 #preprocessing
-import spacy, regex
+import spacy, regex, string
 import pandas as pd
 import numpy as np
 import hdbscan
@@ -267,7 +267,7 @@ def load_data(in_dir, input_format, delimiter):
     """Load data. Valid formats are .csv file or directory of .txt files"""
 
     if input_format == 'csv': # csv file
-        df = pd.read_csv(in_dir, delimiter=delimiter)[1000:3000]
+        df = pd.read_csv(in_dir, delimiter=delimiter)
 
     elif input_format == 'zip': # zip folder with txt
         df = pd.DataFrame(columns=['filename', 'text'])
@@ -393,8 +393,10 @@ def preprocess(text, lemmatize, remove_stopwords, remove_custom_stopwords, remov
             text = ' '.join([t for t in text.split() if t not in custom_stopwords])
 
     # remove punctuation
-    if remove_punct:
-        for p in punctuation:
+    if remove_punct: 
+        punct = string.punctuation
+        punct += '‘’“”′″‴'
+        for p in punct:
             text = text.replace(p, '')
         text = ' '.join(text.split())
 
@@ -512,5 +514,13 @@ def top_2_vec(df, text_column, dir_out):
         row = {topic: score for topic, score in zip(topic_nums[i], topic_scores[i])}
         topic_doc_matrix = topic_doc_matrix.append(row, ignore_index=True)
     topic_doc_matrix.insert(loc=0, column='idx', value=idx)
+
+    # create topic_term_matrix
+    topic_term_matrix = pd.DataFrame()
+    topic_term_matrix.index = topic_idx
+    for i, topic in enumerate(topic_idx):
+        for word, score in zip(model.topic_words[i], model.topic_word_scores[i]):
+            topic_term_matrix.at[topic, word] = score
+    topic_term_matrix = topic_term_matrix.fillna(0)
     
-    return topic_doc_matrix, keyword_df
+    return topic_doc_matrix, keyword_df, topic_term_matrix
