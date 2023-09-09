@@ -22,11 +22,15 @@ Set up the configuration file, run ```python create_config.py```, and start the 
 #### ... 
 
 #### Output
-```evaluation.csv```: contains diversity and coherence scores
-```keywords_per_topic.csv```: shows top n most important keywords per topic
-```topic_doc_matrix.csv```: matrix showing how much each document relates to each topic
-```topic_term_matrix.csv```: matrix containing the weights of all tokens with respect to the topics
-```topic_term_weights```: folder containing visualizations for the most important keywords per topic and their weights
+```evaluation.csv``` contains diversity and coherence scores
+
+```keywords_per_topic.csv``` shows top n most important keywords per topic
+
+```topic_doc_matrix.csv``` matrix showing how much each document relates to each topic
+
+```topic_term_matrix.csv``` matrix containing the weights of all tokens with respect to the topics
+
+```topic_term_weights``` folder containing visualizations for the most important keywords per topic and their weights
 
 ### To do
 Implement visualizations for the output of BERTopic and Top2Vec.
