@@ -6,7 +6,9 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 
 ### Installation
 
-Create and activate a conda python 3.9 environment: ```conda create -n {name here} python=3.9``` -> ```conda activate {env_name}```
+Create and activate a conda python 3.9 environment: 
+
+```conda create -n {name here} python=3.9``` -> ```conda activate {env_name}```
 
 Clone the repository: ```git clone https://github.com/LemmensJens/CLARIAH-topic.git```
 
