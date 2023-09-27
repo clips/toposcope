@@ -16,7 +16,7 @@ config_object["BERTOPIC_CONFIG"] = {
     "min_topic_size": 5, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
     "lemmatize": 1, # 0 (no) or 1 (yes)
-    "remove_nltk_stopwords": 1, # 0 (no) or 1 (yes), removes NLTK stopwords by default
+    "remove_stopwords": 1, # 0 (no) or 1 (yes), removes NLTK's default stopwords, see 'language'
     "remove_custom_stopwords": 0, # 0 (no) or 1 (yes)
     "custom_stopword_list": '', # full path to .txt file with 1 stopword per line, only relevant when "remove_custom_stopwords"=1
     "seed_topic_list": '', # full path to .txt file with seed topics: n keywords from 1 topic per line, separated by a comma
