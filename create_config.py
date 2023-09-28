@@ -11,7 +11,7 @@ config_object["INPUT_CONFIG"] = {
 }
 
 config_object["BERTOPIC_CONFIG"] = {
-    "model": 'doc2vec', # embedding model to use (any HuggingFace model)
+    "model": '', # embedding model to use (any HuggingFace model)
     "topic_reduction": 10, # 0: no reduction, else: max. number of topics allowed
     "min_topic_size": 5, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
