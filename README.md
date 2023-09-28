@@ -21,7 +21,23 @@ Set up the configuration file, run ```python create_config.py```, and start the 
 
 ### Pipeline usage and overview
 
-#### ... 
+#### Set up config file
+In ```create_config.py```, specify the following:
+- which algorithm to use: BERTopic, Top2Vec, LDA or NMDF
+- input format (.csv file or .zip containing .txt)
+- the directory to the data
+- in case of .csv: the column name containing the text data and the delimiter
+
+Then, specify parameters related to the chosen algorithm, and specify preprocessing steps:
+- remove NLTK stopwords
+- remove custom stopwords
+- remove punctuation
+- lowercase text
+- lemmatize text
+- use ngrams
+
+#### Run the pipeline
+Create the config file by running ```python create_config.py``` and start the pipeline with ```python topic_modeling.py```.
 
 #### Output
 ```evaluation.csv``` contains diversity and coherence scores
