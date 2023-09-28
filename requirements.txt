@@ -4,7 +4,7 @@ spacy==3.5.3
 pydantic==1.10.9
 numpy==1.21.6
 transformers==4.16.2
-sentence-transformers==2.2.0
+sentence-transformers==2.2.2
 octis==1.11.1
 regex==2023.5.5
 nltk==3.8.1
