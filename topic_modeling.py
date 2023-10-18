@@ -62,7 +62,7 @@ def main():
         else:
             raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english', 'french', 'german'.")
 
-        print("\tTokenize:", lemmatize)
+        print("\tTokenize:", tokenize)
         print("\tLemmatize:", lemmatize)
         print("\tRemove punctuation:", remove_punct)
         print("\tLowercase:", lowercase)
