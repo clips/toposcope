@@ -14,10 +14,13 @@ Clone the repository: ```git clone https://github.com/LemmensJens/CLARIAH-topic.
 
 Navigate to the repository ```cd CLARIAH-stylo``` and install the requirements with ```pip install -r requirements.txt```. 
 
-Finally, download NLTK's stopwords with ```python -m nltk.downloader stopwords```.
+Finally, download NLTK's stopwords with ```python -m nltk.downloader stopwords```. 
 
 ### Quick start
-Set up the configuration file, run ```python create_config.py```, and start the pipeline by calling ```python topic_modeling.py```.
+Set up the configuration file, run ```python create_config.py```, and start the pipeline by calling ```python -u topic_modeling.py```.
+
+### Demo
+For a demo, run ```python get_demo_data.py``` to retrieve the 20 NewsGroups dataset, and run ```python -u topic_modeling.py``` with the default config settings.
 
 ### Pipeline usage and overview
 
@@ -37,7 +40,7 @@ Then, specify parameters related to the chosen algorithm, and specify preprocess
 - use ngrams
 
 #### Run the pipeline
-Create the config file by running ```python create_config.py``` and start the pipeline with ```python topic_modeling.py```.
+Create the config file by running ```python create_config.py``` and start the pipeline with ```python -u topic_modeling.py```.
 
 #### Output
 ```evaluation.csv``` contains diversity and coherence scores

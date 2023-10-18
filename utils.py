@@ -3,17 +3,12 @@ import os, zipfile
 from configparser import ConfigParser
 
 #preprocessing
-import spacy, regex, string
+import string
 import pandas as pd
-import numpy as np
-import hdbscan
-
 from nltk.util import ngrams
 from nltk.corpus import stopwords
-from string import punctuation
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import OrderedDict
-
 from gensim.corpora import Dictionary
 from gensim.models import CoherenceModel
 
@@ -26,7 +21,6 @@ from top2vec import Top2Vec
 #BERTopic
 from bertopic import BERTopic
 from transformers.pipelines import pipeline
-from sentence_transformers import SentenceTransformer
 
 #Visualizations
 import plotly.graph_objects as go
@@ -53,7 +47,17 @@ else:
 #_____________________________________________________________________________________________
 def BERT_topic(df, text_column, dir_out):
 
-    """Training pipeline for BERTopic"""
+    """
+    Training pipeline for BERTopic
+    Arguments:
+        df: pd.DataFrame with corpus
+        text_column: text column name (str)
+        dir_out: output dir
+    Returns:
+        Topic document matrix
+        Keywords per topic dataframe
+        Topic keyword matrix
+    """
 
     #get base model
     if processing_config['model']:
@@ -128,6 +132,15 @@ def BERT_topic(df, text_column, dir_out):
 
 def coherence(topics, texts):
 
+    """
+    Compute coherence score for topic model.
+    Arguments:
+        topics: keywords per topic (list of lists)
+        texts: tokenized texts (list of lists)
+    Returns:
+        coherence score (float)
+    """
+
     dictionary = Dictionary(texts)
     corpus = [[dictionary.doc2bow(text)] for text in texts]
 
@@ -141,9 +154,22 @@ def coherence(topics, texts):
 
     return coherence_score
 
-def LDA_model(texts, dir_out):
+def LDA_model(df, text_column_name, dir_out):
+
+    """
+    Training pipeline for LDA model.
+    Arguments:
+        df: pd.DataFrame with corpus 
+        text_column_name: text column name in df
+        dir_out: output directory
+    Returns:
+        Topic document matrix
+        Keywords per topic dataframe
+        Topic keyword matrix
+    """
 
     #vectorize text
+    texts = df[text_column_name]
     vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
     X = vectorizer.fit_transform(texts)
 
@@ -209,6 +235,15 @@ def LDA_model(texts, dir_out):
 
 def generate_bar_charts(df, dir_out):
 
+    """
+    Generate bar chart with top 20 keywords per topic. Value is weight of the keyword.
+    Arguments:
+        df: topic term matrix
+        dir_out: output_dir
+    Returns:
+        None
+    """
+
     # Iterate over each topic in the dataframe
     for topic in df.index:
         topic_data = df.loc[topic].sort_values(ascending=False)[:20]
@@ -232,20 +267,18 @@ def generate_bar_charts(df, dir_out):
         # Display the bar chart
         fig.write_image(dir_out + '/topic_term_weights/' + f'topic_{topic}_term_weights.png')
 
-def plot_document_topics_umap(model, label_names, output_dir):
+def plot_document_topics_umap(model, texts, label_names, output_dir):
     """
     Generate a 2D plot of documents representing their topics using UMAP.
-
-    Parameters:
-    model (sklearn.decomposition.LatentDirichletAllocation): Trained LDA model.
-    label_names (list): List of label names corresponding to the topics.
-    output_dir (str): Directory where the plot should be saved.
-
+    Arguments:
+        model: trained LDA model
+        label_names: list of label names corresponding to the topics
+        output_dir: output directory
     Returns:
-    None
+        None
     """
     # Get topic proportions for each document
-    document_topics = model.transform(YOUR_DOCUMENTS)  # Replace with your document data
+    document_topics = model.transform(texts)  # Replace with your document data
 
     # Reduce dimensionality using UMAP
     umap_model = umap.UMAP(n_components=2, random_state=42)
@@ -264,7 +297,14 @@ def plot_document_topics_umap(model, label_names, output_dir):
 
 def load_data(in_dir, input_format, delimiter):
 
-    """Load data. Valid formats are .csv file or directory of .txt files"""
+    """Load data. 
+    Arguments:
+        in_dir: path to corpus
+        input_format: 'csv' or 'zip'
+        delimiter: delimiter for csv, if applicable
+    Returns:
+        pd.DataFrame() with corpus
+    """
 
     if input_format == 'csv': # csv file
         df = pd.read_csv(in_dir, delimiter=delimiter)
@@ -286,8 +326,20 @@ def load_data(in_dir, input_format, delimiter):
     
     return df
 
-def NMF_model(texts, dir_out):
+def NMF_model(df, text_column_name, dir_out):
 
+    """
+    Training pipeline for NMF model.
+    Arguments:
+        texts: pd.Series (column of corpus DF)
+        dir_out: output directory
+    Returns:
+        Topic document matrix
+        Keywords per topic dataframe
+        Topic keyword matrix
+    """
+
+    texts = df[text_column_name]
     vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
     X = vectorizer.fit_transform(texts)
 
@@ -347,24 +399,21 @@ def NMF_model(texts, dir_out):
 
     return topic_doc_matrix, keyword_df, components_df
 
-def preprocess(text, lemmatize, remove_stopwords, remove_custom_stopwords, remove_punct, lowercase):
+def preprocess(text, nlp, lang, lemmatize, remove_stopwords, remove_custom_stopwords, remove_punct, lowercase):
 
-    """Create Spacy doc from input. 
-    Lemmatize and/or remove stopwords (incl. punctuation) if requested."""
-
-    lang = processing_config['lang']
-
-    #load relevant SpaCy model
-    if lang =='dutch':
-        nlp = spacy.load("nl_core_news_sm")
-    elif lang == 'english':
-        nlp = spacy.load("en_core_web_sm")
-    elif lang == 'french':
-        nlp = spacy.load('fr_core_news_sm')
-    elif lang == 'german':
-        nlp = spacy.load('de_core_news_sm')
-    else:
-        raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english', 'french', 'german'.")
+    """Preprocess input text.
+    Arguments:
+        text: Str,
+        nlp: spacy model,
+        lang: language ('dutch', 'english', 'french', 'german'),
+        lemmatize: bool (True = lemmatize),
+        remove_stopwords: bool (True = remove stopwords),
+        remove_custom_stopwords: bool (True = remove custom stopwords),
+        remove_punct: bool (True = remove punctuation),
+        lowercase: bool (True = lowercase),
+    Returns:
+        Preprocessed Str
+    """
 
     #create doc object
     doc = nlp(text)
@@ -378,7 +427,15 @@ def preprocess(text, lemmatize, remove_stopwords, remove_custom_stopwords, remov
     #lowercase
     if lowercase:
         text = text.lower()
-    
+
+    # remove punctuation
+    if remove_punct: 
+        punct = string.punctuation
+        punct += '‘’“”′″‴'
+        for p in punct:
+            text = text.replace(p, '')
+        text = ' '.join(text.split())
+
     #remove stopwords
     if remove_stopwords:
         stop_words = stopwords.words(lang)
@@ -392,23 +449,16 @@ def preprocess(text, lemmatize, remove_stopwords, remove_custom_stopwords, remov
             custom_stopwords = [l.strip() for l in lines]
             text = ' '.join([t for t in text.split() if t not in custom_stopwords])
 
-    # remove punctuation
-    if remove_punct: 
-        punct = string.punctuation
-        punct += '‘’“”′″‴'
-        for p in punct:
-            text = text.replace(p, '')
-        text = ' '.join(text.split())
-
     return text
 
 def proportion_unique_words(topics, topk=10):
     """
-    compute the proportion of unique words
-    Parameters
-    ----------
-    topics: a list of lists of words
-    topk: top k words on which the topic diversity will be computed
+    Compute the proportion of unique words. Used as diversity score for evaluation. 
+    Arguments:
+        topics: a list of lists of words
+        topk: top k words on which the topic diversity will be computed
+    Returns:
+        Proportion of unique words (float)
     """
     if topk > len(topics[0]):
         raise Exception('Words in topics are less than '+str(topk))
@@ -422,7 +472,14 @@ def proportion_unique_words(topics, topk=10):
 
 def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
         
-        """Tokenizer function to use later in case ngrams are requested."""
+        """
+        Tokenizer function to use later in case ngrams are requested.
+        Arguments:
+            text: Str
+            upper_n: upper ngram range, lower is always set to 1
+        Returns:
+            tokenized text (list of strings)
+        """
 
         result = []
         n = 1
@@ -434,7 +491,17 @@ def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
 
 def top_2_vec(df, text_column, dir_out):
 
-    "Top2Vec training pipeline"
+    """
+    Training pipeline for Top2Vec
+    Arguments:
+        df: pd.DataFrame with corpus
+        text_column: text column name (str)
+        dir_out: output dir
+    Returns:
+        Topic document matrix
+        Keywords per topic dataframe
+        Topic keyword matrix
+    """
 
     embedding_model = processing_config['model']
 

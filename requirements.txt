@@ -13,6 +13,9 @@ gensim==4.2.0
 bertopic==0.14.1
 kaleido==0.2.1
 huggingface-hub==0.10.1
+datasets==2.14.5
+numpy==1.25
+tensorflow[and-cuda]==2.14.0
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
 nl_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_sm-3.5.0/nl_core_news_sm-3.5.0-py3-none-any.whl
 de_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.5.0/de_core_news_sm-3.5.0-py3-none-any.whl

@@ -3,19 +3,19 @@ from configparser import ConfigParser
 config_object = ConfigParser()
 
 config_object["INPUT_CONFIG"] = {
-    "algorithm": '', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
-    "input": '', #full path to input data
-    "input_format": '', #'csv' or 'zip'
-    "text_column": '', #only relevant if input_format='csv'
-    "delimiter": '' #only relevant if input_format='csv'
+    "algorithm": 'BERTopic', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
+    "input": './demo/demo_data.csv', #full path to input data
+    "input_format": 'csv', #'csv' or 'zip'
+    "text_column": 'text', #only relevant if input_format='csv'
+    "delimiter": ',' #only relevant if input_format='csv'
 }
 
 config_object["BERTOPIC_CONFIG"] = {
     "model": '', # embedding model to use (any HuggingFace model)
-    "topic_reduction": 10, # 0: no reduction, else: max. number of topics allowed
-    "min_topic_size": 5, # minimum number of documents per topic, must be 1<
+    "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
+    "min_topic_size": 50, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
-    "lemmatize": 1, # 0 (no) or 1 (yes)
+    "lemmatize": 0, # 0 (no) or 1 (yes)
     "remove_stopwords": 1, # 0 (no) or 1 (yes), removes NLTK's default stopwords, see 'language'
     "remove_custom_stopwords": 0, # 0 (no) or 1 (yes)
     "custom_stopword_list": '', # full path to .txt file with 1 stopword per line, only relevant when "remove_custom_stopwords"=1
@@ -23,7 +23,7 @@ config_object["BERTOPIC_CONFIG"] = {
     "remove_punct": 1, # 0 (no) or 1 (yes)
     "lowercase": 1, # 0 (no) or 1 (yes)
     "upper_ngram_range": 2, # upper ngram range for keywords, creates ngrams for range (1, n), must be 0<
-    "lang": 'english' # 'dutch', 'english', 'french', 'german'
+    "lang": 'english' # 'dutch', 'english', 'french', 'german'; relevant for stopwords, lemmatization
 }
 
 config_object["TOP2VEC_CONFIG"] = {
@@ -31,6 +31,7 @@ config_object["TOP2VEC_CONFIG"] = {
     "topic_reduction": 0, # 0: no reduction, else: max. number of topics allowed
     "min_topic_size": 2, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
+    "preprocess": 1, # 0 (no) or 1 (yes)
     "lemmatize": 0, # 0 (no) or 1 (yes)
     "remove_stopwords": 0, # 0 (no) or 1 (yes)
     "remove_custom_stopwords": 0, # 0 (no) or 1 (yes)
@@ -69,7 +70,7 @@ config_object["NMF_CONFIG"] = {
 }
 
 config_object["OUTPUT_CONFIG"] = {
-    "output_dir": './output',
+    "output_dir": './demo/output',
     "overwrite_output_dir": 1
 }
 
