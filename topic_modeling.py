@@ -64,11 +64,11 @@ def main():
 
         print("\tTokenize:", tokenize)
         print("\tLemmatize:", lemmatize)
-        print("\tRemove punctuation:", remove_punct)
-        print("\tLowercase:", lowercase)
         print("\tRemove stopwords:", remove_stopwords)
         print("\tRemove custom stopwords:", remove_custom_stopwords)
-
+        print("\tLowercase:", lowercase)
+        print("\tRemove punctuation:", remove_punct)
+        
         df[text_column] = df[text_column].progress_apply(lambda x: preprocess(
             x, 
             nlp, 
@@ -109,7 +109,9 @@ def main():
 #EVALUATION____________________________________________________________________________________
     print('Evaluating model...')
     texts = [doc.split() for doc in df[text_column]]
+    print('\tCoherence')
     coherence_score = coherence(keywords, texts)
+    print('\tDiversity')
     diversity = proportion_unique_words(keywords)
 
 #SAVE_OUTPUT__________________________________________________________________________________

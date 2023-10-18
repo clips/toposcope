@@ -13,7 +13,7 @@ config_object["INPUT_CONFIG"] = {
 config_object["BERTOPIC_CONFIG"] = {
     "model": '', # embedding model to use (any HuggingFace model)
     "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
-    "min_topic_size": 50, # minimum number of documents per topic, must be 1<
+    "min_topic_size": 5, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
     "preprocess": 1, # 0 (no) or 1 (yes)
     "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
@@ -24,14 +24,14 @@ config_object["BERTOPIC_CONFIG"] = {
     "seed_topic_list": '', # full path to .txt file with seed topics: n keywords from 1 topic per line, separated by a comma
     "remove_punct": 1, # 0 (no) or 1 (yes)
     "lowercase": 1, # 0 (no) or 1 (yes)
-    "upper_ngram_range": 2, # upper ngram range for keywords, creates ngrams for range (1, n), must be 0<
+    "upper_ngram_range": 1, # upper ngram range for keywords, creates ngrams for range (1, n), must be 0<
     "lang": 'english' # 'dutch', 'english', 'french', 'german'; relevant for stopwords, lemmatization
 }
 
 config_object["TOP2VEC_CONFIG"] = {
     "model": 'doc2vec', # Any of the following: "doc2vec", "universal-sentence-encoder", "universal-sentence-encoder-multilingual", "distiluse-base-multilingual-cased"
-    "topic_reduction": 0, # 0: no reduction, else: max. number of topics allowed
-    "min_topic_size": 2, # minimum number of documents per topic, must be 1<
+    "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
+    "min_topic_size": 1, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
     "preprocess": 1, # 0 (no) or 1 (yes)
     "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
@@ -42,7 +42,7 @@ config_object["TOP2VEC_CONFIG"] = {
     "seed_topic_list": '', # full path to .txt with seed topics: n keywords from 1 topic per line, separated by a comma
     "remove_punct": 1, # 0 (no) or 1 (yes)
     "lowercase": 1, # 0 (no) or 1 (yes)
-    "upper_ngram_range": 2, #upper ngram range for keywords, creates ngrams for range (1, n)
+    "upper_ngram_range": 1, #upper ngram range for keywords, creates ngrams for range (1, n)
     "lang": 'english' #'dutch', 'english'
 }
 

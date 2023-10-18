@@ -60,7 +60,7 @@ def BERT_topic(df, text_column, dir_out):
     """
 
     #get base model
-    if processing_config['model']:
+    if processing_config['model'].strip():
         embedding_model = pipeline("feature-extraction", processing_config['model'])
     else:
         embedding_model = None
@@ -97,8 +97,7 @@ def BERT_topic(df, text_column, dir_out):
             calculate_probabilities=True,
         )
 
-    topics, probs = topic_model.fit_transform(df[text_column].to_numpy())
-
+    _, probs = topic_model.fit_transform(df[text_column].to_numpy())
     topic_idx = topic_model.get_topic_info()['Topic']
     
     keywords = []
@@ -142,15 +141,10 @@ def coherence(topics, texts):
     """
 
     dictionary = Dictionary(texts)
-    corpus = [[dictionary.doc2bow(text)] for text in texts]
+    corpus = [dictionary.doc2bow(text) for text in texts]
 
-    cm = CoherenceModel(topics=topics, 
-                        texts=texts, 
-                        corpus=corpus, 
-                        dictionary=dictionary, 
-                        coherence='c_v')
-    
-    coherence_score = round(cm.get_coherence(), 3)
+    coherence_model = CoherenceModel(topics=topics, corpus=corpus, dictionary=dictionary, coherence='u_mass')
+    coherence_score = coherence_model.get_coherence()
 
     return coherence_score
 
@@ -416,13 +410,12 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_cu
         Preprocessed Str
     """
 
-    #create doc object
-    doc = nlp(text)
-
     #lemmatize
     if tokenize and lemmatize:
+        doc = nlp(text)
         text = ' '.join([t.lemma_ for t in doc])
     elif tokenize and not lemmatize:
+        doc = nlp(text)
         text = ' '.join([t.text for t in doc])
     elif not tokenize and lemmatize:
         raise ValueError("'tokenize' cannot be False if 'lemmatize' is set to True.")
@@ -439,6 +432,7 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_cu
         text = ' '.join([t for t in text.split() if t.lower() not in stop_words])
 
     #remove custom stop words
+    #to do: allow phrases and regex
     custom_stopword_dir = processing_config['custom_stopword_list']
     if custom_stopword_dir.strip() and remove_custom_stopwords:
         with open(custom_stopword_dir) as x:
