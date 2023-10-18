@@ -42,6 +42,7 @@ def main():
     do_preprocess = int(processing_config['preprocess'])
 
     if do_preprocess:
+        tokenize = int(processing_config['tokenize'])
         lemmatize = int(processing_config['lemmatize'])
         remove_stopwords = int(processing_config['remove_stopwords'])
         remove_custom_stopwords = int(processing_config['remove_custom_stopwords'])
@@ -61,6 +62,7 @@ def main():
         else:
             raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english', 'french', 'german'.")
 
+        print("\tTokenize:", lemmatize)
         print("\tLemmatize:", lemmatize)
         print("\tRemove punctuation:", remove_punct)
         print("\tLowercase:", lowercase)
@@ -71,6 +73,7 @@ def main():
             x, 
             nlp, 
             lang, 
+            tokenize,
             lemmatize, 
             remove_stopwords, 
             remove_custom_stopwords, 

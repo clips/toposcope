@@ -399,13 +399,14 @@ def NMF_model(df, text_column_name, dir_out):
 
     return topic_doc_matrix, keyword_df, components_df
 
-def preprocess(text, nlp, lang, lemmatize, remove_stopwords, remove_custom_stopwords, remove_punct, lowercase):
+def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_custom_stopwords, remove_punct, lowercase):
 
     """Preprocess input text.
     Arguments:
         text: Str,
         nlp: spacy model,
         lang: language ('dutch', 'english', 'french', 'german'),
+        tokenize: bool (True = tokenize)
         lemmatize: bool (True = lemmatize),
         remove_stopwords: bool (True = remove stopwords),
         remove_custom_stopwords: bool (True = remove custom stopwords),
@@ -419,14 +420,31 @@ def preprocess(text, nlp, lang, lemmatize, remove_stopwords, remove_custom_stopw
     doc = nlp(text)
 
     #lemmatize
-    if lemmatize:
+    if tokenize and lemmatize:
         text = ' '.join([t.lemma_ for t in doc])
-    else:
+    elif tokenize and not lemmatize:
         text = ' '.join([t.text for t in doc])
-    
+    elif not tokenize and lemmatize:
+        raise ValueError("'tokenize' cannot be False if 'lemmatize' is set to True.")
+    else:
+        pass
+
     #lowercase
     if lowercase:
         text = text.lower()
+
+    #remove NLTK stopwords
+    if remove_stopwords:
+        stop_words = stopwords.words(lang)
+        text = ' '.join([t for t in text.split() if t.lower() not in stop_words])
+
+    #remove custom stop words
+    custom_stopword_dir = processing_config['custom_stopword_list']
+    if custom_stopword_dir.strip() and remove_custom_stopwords:
+        with open(custom_stopword_dir) as x:
+            lines = x.readlines()
+            custom_stopwords = [l.strip() for l in lines]
+            text = ' '.join([t for t in text.split() if t.lower() not in custom_stopwords])
 
     # remove punctuation
     if remove_punct: 
@@ -435,19 +453,6 @@ def preprocess(text, nlp, lang, lemmatize, remove_stopwords, remove_custom_stopw
         for p in punct:
             text = text.replace(p, '')
         text = ' '.join(text.split())
-
-    #remove stopwords
-    if remove_stopwords:
-        stop_words = stopwords.words(lang)
-        text = ' '.join([t for t in text.split() if t not in stop_words])
-
-    #custom stop word list
-    custom_stopword_dir = processing_config['custom_stopword_list']
-    if custom_stopword_dir.strip() and remove_custom_stopwords:
-        with open(custom_stopword_dir) as x:
-            lines = x.readlines()
-            custom_stopwords = [l.strip() for l in lines]
-            text = ' '.join([t for t in text.split() if t not in custom_stopwords])
 
     return text
 

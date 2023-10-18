@@ -16,6 +16,7 @@ config_object["BERTOPIC_CONFIG"] = {
     "min_topic_size": 50, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
     "preprocess": 1, # 0 (no) or 1 (yes)
+    "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)
     "remove_stopwords": 1, # 0 (no) or 1 (yes), removes NLTK's default stopwords, see 'language'
     "remove_custom_stopwords": 0, # 0 (no) or 1 (yes)
@@ -33,6 +34,7 @@ config_object["TOP2VEC_CONFIG"] = {
     "min_topic_size": 2, # minimum number of documents per topic, must be 1<
     "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
     "preprocess": 1, # 0 (no) or 1 (yes)
+    "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)
     "remove_stopwords": 0, # 0 (no) or 1 (yes)
     "remove_custom_stopwords": 0, # 0 (no) or 1 (yes)
@@ -48,6 +50,7 @@ config_object["LDA_CONFIG"] = {
     "n_components": 10, # number of topics to detect
     "n_keywords": 10, # number of keywords to extract per topic
     "preprocess": 1, # 0 (no) or 1 (yes)
+    "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)
     "remove_stopwords": 1, # 0 (no) or 1 (yes)
     "remove_custom_stopwords": 0, # 0 (no) or 1 (yes)
@@ -62,6 +65,7 @@ config_object["NMF_CONFIG"] = {
     "n_components": 10, # number of topics to detect
     "n_keywords": 10, #number of keywords to extract per topic
     "preprocess": 1, # 0 (no) or 1 (yes)
+    "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)
     "remove_stopwords": 1, # 0 (no) or 1 (yes)
     "remove_custom_stopwords": 0, # 0 (no) or 1 (yes)
