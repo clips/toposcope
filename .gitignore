@@ -1,3 +1,11 @@
+# Ignore the config.ini file
 config.ini
-create_config.py
-output/
+
+# Ignore the __pycache__ folder
+__pycache__
+
+# Ignore any file or folder that has "out" in its name; for output folders and nohup.out
+**/*out*
+
+# Ignore the get_demo_data.py
+**/get_demo_data.py
