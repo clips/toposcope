@@ -9,3 +9,6 @@ __pycache__
 
 # Ignore the get_demo_data.py
 **/get_demo_data.py
+
+# Ignore data for demo
+**/demo_data.csv
