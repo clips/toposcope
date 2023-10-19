@@ -1,9 +1,13 @@
-import os, spacy
+import os, shutil
+import spacy
 import pandas as pd
+import random as rd
 from configparser import ConfigParser
 from utils import *
 from tqdm import tqdm
 tqdm.pandas()
+
+rd.seed(42)
 
 #______________________________________________________________________________________________
 
@@ -62,12 +66,12 @@ def main():
         else:
             raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english', 'french', 'german'.")
 
-        print("\tTokenize:", tokenize)
-        print("\tLemmatize:", lemmatize)
-        print("\tRemove stopwords:", remove_stopwords)
-        print("\tRemove custom stopwords:", remove_custom_stopwords)
-        print("\tLowercase:", lowercase)
-        print("\tRemove punctuation:", remove_punct)
+        print("\tTokenize:", bool(tokenize))
+        print("\tLemmatize:", bool(lemmatize))
+        print("\tRemove stopwords:", bool(remove_stopwords))
+        print("\tRemove custom stopwords:", bool(remove_custom_stopwords))
+        print("\tLowercase:", bool(lowercase))
+        print("\tRemove punctuation:", bool(remove_punct))
         
         df[text_column] = df[text_column].progress_apply(lambda x: preprocess(
             x, 
@@ -83,12 +87,16 @@ def main():
     
 #PREPARE_OUTPUT_DIR____________________________________________________________________________
     dir_out = output_config['output_dir']
-    if not int(output_config['overwrite_output_dir']):
-        assert os.path.exists(dir_out) == False
 
-    if not os.path.exists(dir_out):
-        os.mkdir(dir_out)
-        os.mkdir(dir_out+'/topic_term_weights/')
+    # if overwrite_output_dir is True, delete the directory and make an empty one
+    # else, check if output dir exists already and return error if it does
+    if int(output_config['overwrite_output_dir']) == False:
+        assert os.path.exists(dir_out) == False
+    else:
+        shutil.rmtree(dir_out)
+
+    os.mkdir(dir_out)
+    os.mkdir(dir_out+'/topic_term_weights/')
 
 #FIT_MODEL_____________________________________________________________________________________
     print("Fitting model...")
@@ -127,9 +135,14 @@ def main():
     keyword_df.to_csv(os.path.join(dir_out, 'keywords_per_topic.csv'), index=False)
 
     #TOPIC-TERM MATRIX
+    topic_term_matrix.sort_index(axis=1, inplace=True)
     topic_term_matrix.to_csv(os.path.join(dir_out, 'topic_term_matrix.csv'))
 
     #ANNOTATIONS
+    idx_column = topic_doc_matrix['idx']
+    topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])
+    topic_doc_matrix.sort_index(axis=1, inplace=True)
+    topic_doc_matrix = pd.concat([idx_column, topic_doc_matrix], axis=1)
     topic_doc_matrix.to_csv(os.path.join(dir_out, 'topic_doc_matrix.csv'), index=False)
 
     #VISUALIZATION (to do)
