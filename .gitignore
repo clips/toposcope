@@ -7,8 +7,5 @@ __pycache__
 # Ignore any file or folder that has "out" in its name; for output folders and nohup.out
 **/*out*
 
-# Ignore the get_demo_data.py
-**/get_demo_data.py
-
 # Ignore data for demo
 **/demo_data.csv
