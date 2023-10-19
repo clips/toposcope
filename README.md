@@ -8,11 +8,11 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 
 Create and activate a conda python 3.9 environment: 
 
-```conda create -n {name here} python=3.9``` -> ```conda activate {env_name}```
+```conda create -n {name here} python=3.9.18``` -> ```conda activate {env_name}```
 
 Clone the repository: ```git clone https://github.com/LemmensJens/CLARIAH-topic.git```
 
-Navigate to the repository ```cd CLARIAH-stylo``` and install the requirements with ```pip install -r requirements.txt```. 
+Navigate to the repository ```cd CLARIAH-stylo``` and install the requirements with ```pip3 install -r requirements.txt```. 
 
 Finally, download NLTK's stopwords with ```python -m nltk.downloader stopwords```. 
 
