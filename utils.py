@@ -1,5 +1,6 @@
 #system
 import os, zipfile
+import random as rd
 from configparser import ConfigParser
 
 #preprocessing
@@ -21,11 +22,14 @@ from top2vec import Top2Vec
 #BERTopic
 from bertopic import BERTopic
 from transformers.pipelines import pipeline
+from umap import UMAP
 
 #Visualizations
 import plotly.graph_objects as go
 import umap
 import matplotlib.pyplot as plt
+
+rd.seed(42)
 
 #load SpaCy and config_______________________________________________________________________
 config_object = ConfigParser()
@@ -73,6 +77,15 @@ def BERT_topic(df, text_column, dir_out):
     else:
         seed_topic_list = None
 
+    # define umap model with default BERTopic values, 
+    # but with random state in order to ensure reproducible results
+    umap = UMAP(n_neighbors=15,
+            n_components=5,
+            min_dist=0.0,
+            metric='cosine',
+            low_memory=False,
+            random_state=42)
+
     #instantiate topic model object
     if embedding_model:
         topic_model = BERTopic(
@@ -84,6 +97,7 @@ def BERT_topic(df, text_column, dir_out):
             embedding_model=embedding_model, 
             nr_topics=int(processing_config['topic_reduction']),
             calculate_probabilities=True,
+            umap_model=umap,
         )
     
     else:
@@ -95,6 +109,7 @@ def BERT_topic(df, text_column, dir_out):
             seed_topic_list=seed_topic_list,
             nr_topics=int(processing_config['topic_reduction']),
             calculate_probabilities=True,
+            umap_model=umap,
         )
 
     _, probs = topic_model.fit_transform(df[text_column].to_numpy())
@@ -502,8 +517,6 @@ def top_2_vec(df, text_column, dir_out):
         Topic keyword matrix
     """
 
-    embedding_model = processing_config['model']
-
     default_models = {
         'doc2vec', 
         'universal-sentence-encoder', 
@@ -516,19 +529,21 @@ def top_2_vec(df, text_column, dir_out):
     }
 
     #get base model
-    if processing_config['model']:
+    if processing_config['model'].strip():
         embedding_model = processing_config['model']
         if embedding_model not in default_models:
             raise KeyError(
                 """embedding_model must be one of: 'doc2vec', 'universal-sentence-encoder', 'universal-sentence-encoder-large', 'universal-sentence-encoder-multilingual', 'universal-sentence-encoder-multilingual-large', 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', 'paraphrase-multilingual-MiniLM-L12-v2'"""
                 )
+    else:
+        embedding_model = ''
 
     model = Top2Vec(
         df[text_column].tolist(), 
         embedding_model=embedding_model,
         split_documents=False,
         min_count=50, #words occurring less frequently than 'min_count' are ignored
-        tokenizer=tokenizer 
+        tokenizer=tokenizer,
     )
 
     #HIERARCHICAL_TOPIC_REDUCTION__________________________________________________________________
