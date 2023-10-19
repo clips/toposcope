@@ -20,7 +20,7 @@ Finally, download NLTK's stopwords with ```python -m nltk.downloader stopwords``
 Set up the configuration file, run ```python create_config.py```, and start the pipeline by calling ```python -u topic_modeling.py```.
 
 ### Demo
-For a demo, run ```python get_demo_data.py``` to retrieve the 20 NewsGroups dataset, and run ```python -u topic_modeling.py``` with the default config settings.
+For a demo, run ```python get_demo_data.py``` to retrieve the 20 NewsGroups dataset, initialize the config file with ```python create_config.py```, and run ```python -u topic_modeling.py``` with the default config settings.
 
 ### Pipeline usage and overview
 
