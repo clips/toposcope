@@ -188,7 +188,7 @@ def LDA_model(df, text_column_name, dir_out):
         learning_method='online',
 		random_state=42,
 		max_iter=100,
-		n_jobs=2
+		n_jobs=1
 	)
     lda.fit(X)
 

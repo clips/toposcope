@@ -66,12 +66,12 @@ def main():
         else:
             raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english', 'french', 'german'.")
 
-        print("\tTokenize:", bool(tokenize))
-        print("\tLemmatize:", bool(lemmatize))
-        print("\tRemove stopwords:", bool(remove_stopwords))
-        print("\tRemove custom stopwords:", bool(remove_custom_stopwords))
-        print("\tLowercase:", bool(lowercase))
-        print("\tRemove punctuation:", bool(remove_punct))
+        print("    Tokenize:", bool(tokenize))
+        print("    Lemmatize:", bool(lemmatize))
+        print("    Remove stopwords:", bool(remove_stopwords))
+        print("    Remove custom stopwords:", bool(remove_custom_stopwords))
+        print("    Lowercase:", bool(lowercase))
+        print("    Remove punctuation:", bool(remove_punct))
         
         df[text_column] = df[text_column].progress_apply(lambda x: preprocess(
             x, 
@@ -88,15 +88,17 @@ def main():
 #PREPARE_OUTPUT_DIR____________________________________________________________________________
     dir_out = output_config['output_dir']
 
-    # if overwrite_output_dir is True, delete the directory and make an empty one
+    # if overwrite_output_dir is True, delete the directory
     # else, check if output dir exists already and return error if it does
-    if int(output_config['overwrite_output_dir']) == False:
-        assert os.path.exists(dir_out) == False
+    # create the output directory
+    if int(output_config['overwrite_output_dir']):
+        if os.path.exists(dir_out):
+            shutil.rmtree(dir_out)
     else:
-        shutil.rmtree(dir_out)
+        assert os.path.exists(dir_out) == False
 
     os.mkdir(dir_out)
-    os.mkdir(dir_out+'/topic_term_weights/')
+    os.mkdir(os.path.join(dir_out, 'topic_term_weights'))
 
 #FIT_MODEL_____________________________________________________________________________________
     print("Fitting model...")
@@ -117,9 +119,9 @@ def main():
 #EVALUATION____________________________________________________________________________________
     print('Evaluating model...')
     texts = [doc.split() for doc in df[text_column]]
-    print('\tCoherence')
+    print('    Coherence')
     coherence_score = coherence(keywords, texts)
-    print('\tDiversity')
+    print('    Diversity')
     diversity = proportion_unique_words(keywords)
 
 #SAVE_OUTPUT__________________________________________________________________________________
