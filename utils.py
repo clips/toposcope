@@ -74,7 +74,7 @@ def BERT_topic(df, text_column, dir_out, lang):
             base_model = 'all-MiniLM-L6-v2' # default model for English
         else:
             base_model = 'paraphrase-multilingual-MiniLM-L12-v2' # default model for all other languages
-    print(f'Computing embeddings with SentenceTransformers using {base_model} as base model...')
+    print(f'\nComputing embeddings with SentenceTransformers using {base_model} as base model...')
     # precompute embeddings for visualizations
     sentence_model = SentenceTransformer(base_model)
     embeddings = sentence_model.encode(df[text_column].to_numpy(), show_progress_bar=True)
@@ -84,7 +84,7 @@ def BERT_topic(df, text_column, dir_out, lang):
         with open(processing_config['seed_topic_list']) as f:
             lines = f.readlines()
             seed_topic_list = [[w.strip() for w in l.split(',')] for l in lines]
-            print('Using seed topics:\n', seed_topic_list)
+            print('\nUsing seed topics:\n', seed_topic_list)
     else:
         seed_topic_list = None
 
@@ -110,7 +110,7 @@ def BERT_topic(df, text_column, dir_out, lang):
         umap_model=umap,
     )
 
-    print('    Fitting BERTopic model...')
+    print('\nFitting BERTopic model...')
     _, probs = topic_model.fit_transform(df[text_column].to_numpy())
     topic_idx = topic_model.get_topic_info()['Topic']
 
@@ -120,7 +120,6 @@ def BERT_topic(df, text_column, dir_out, lang):
         embeddings=embeddings
         )
     
-    print('    Generating outputs...')
     topic_idx = topic_model.get_topic_info()['Topic']
     
     keywords = []
@@ -150,6 +149,7 @@ def BERT_topic(df, text_column, dir_out, lang):
     topic_term_matrix.columns = vocab
 
     # Generate visualizations
+    print("Generating visualizations...")
     generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings)
     
     return topic_doc_matrix, keyword_df, topic_term_matrix
@@ -200,6 +200,7 @@ def LDA_model(df, text_column_name, dir_out):
 		max_iter=100,
 		n_jobs=1
 	)
+    print("\nFitting LDA model...")
     lda.fit(X)
 
     #calculate probabilities per doc/topic
@@ -237,7 +238,7 @@ def LDA_model(df, text_column_name, dir_out):
     }) 
 
     # Generate visualizations
-    print("Generate visualizations...")
+    print("Generating visualizations...")
     keyword_barcharts = lda_visualize_barchart(lda, vectorizer, annotations)
     keyword_barcharts.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
@@ -329,13 +330,12 @@ def NMF_model(df, text_column_name, dir_out):
         random_state=42
     )
 
-    print('Fitting NMF model...')
+    print('\nFitting NMF model...')
     nmf.fit(X)
 
     scores = nmf.transform(X)
     components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names())
 
-    print("Generating output...")
     #get keywords per topic
     keywords = []
     topic_idx = range(components_df.shape[0])
@@ -515,8 +515,8 @@ def top_2_vec(df, text_column, dir_out):
     else:
         embedding_model = ''
 
-    print(f'    Fitting Top2Vec model...')
-    print(f'    Using {embedding_model} as embedding model...')
+    print(f'\nFitting Top2Vec model...')
+    print(f'Using {embedding_model} as embedding model...')
     model = Top2Vec(
         df[text_column].tolist(), 
         embedding_model=embedding_model,

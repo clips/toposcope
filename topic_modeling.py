@@ -101,7 +101,6 @@ def main():
     os.mkdir(os.path.join(dir_out, 'visualizations'))
 
 #FIT_MODEL_____________________________________________________________________________________
-    print("Fitting model...")
     if input_config['algorithm'] == 'BERTopic':
         topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out, lang)
     
