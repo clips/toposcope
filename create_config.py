@@ -3,7 +3,7 @@ from configparser import ConfigParser
 config_object = ConfigParser()
 
 config_object["INPUT_CONFIG"] = {
-    "algorithm": 'Top2Vec', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
+    "algorithm": 'BERTopic', #'LDA', 'NMF', 'Top2Vec', 'BERTopic'
     "input": './demo/demo_data.csv', #full path to input data
     "input_format": 'csv', #'csv' or 'zip'
     "text_column": 'text', #only relevant if input_format='csv'
@@ -11,7 +11,7 @@ config_object["INPUT_CONFIG"] = {
 }
 
 config_object["BERTOPIC_CONFIG"] = {
-    "model": '', # embedding model to use (any HuggingFace model); empty will result in default model 
+    "model": 'distilbert-base-uncased', # embedding model to use (any HuggingFace model); empty will result in default model 
     "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
     "min_topic_size": 2, # minimum number of documents per topic, must be 1<
     "preprocess": 1, # 0 (no) or 1 (yes)
@@ -19,7 +19,7 @@ config_object["BERTOPIC_CONFIG"] = {
     "lemmatize": 0, # 0 (no) or 1 (yes)
     "remove_nltk_stopwords": 1, # 0 (no) or 1 (yes), removes NLTK's default stopwords, see 'lang' config parameter
     "remove_custom_stopwords": '', # if not emtpy: full path to .txt file with 1 stopword per line
-    "seed_topic_list": '', # full path to .txt file with seed topics: n keywords from 1 topic per line, separated by a comma
+    "seed_topic_list": './seed_topics.txt', # full path to .txt file with seed topics: n keywords from 1 topic per line, separated by a comma
     "remove_punct": 1, # 0 (no) or 1 (yes)
     "lowercase": 1, # 0 (no) or 1 (yes)
     "upper_ngram_range": 1, # upper ngram range for keywords, creates ngrams for range (1, n), must be 0<
@@ -27,7 +27,7 @@ config_object["BERTOPIC_CONFIG"] = {
 }
 
 config_object["TOP2VEC_CONFIG"] = {
-    "model": 'universal-sentence-encoder', # Any of the following: "doc2vec", "universal-sentence-encoder", "universal-sentence-encoder-multilingual", "distiluse-base-multilingual-cased", only use "universal-sentence-encoder" for English data
+    "model": 'universal-sentence-encoder', # Any of the following: "doc2vec", "universal-sentence-encoder", "all-MiniLM-L6-v2", "distiluse-base-multilingual-cased", "paraphrase-multilingual-MiniLM-L12-v2" only use "universal-sentence-encoder" for English data
     "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
     "min_topic_size": 2, # minimum number of documents per topic, must be 1<
     "preprocess": 1, # 0 (no) or 1 (yes)

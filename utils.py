@@ -67,15 +67,14 @@ def BERT_topic(df, text_column, dir_out, lang):
     """
 
     # Load embedding model
-    print('    Computing embeddings with SentenceTransformers...')
-    if not processing_config['model'].strip():
+    if processing_config['model'].strip():
+        base_model = processing_config['model'].strip() # custom model
+    else:
         if lang == 'english':
             base_model = 'all-MiniLM-L6-v2' # default model for English
         else:
             base_model = 'paraphrase-multilingual-MiniLM-L12-v2' # default model for all other languages
-    else:
-        base_model = processing_config['model'].strip() # custom model
-
+    print(f'Computing embeddings with SentenceTransformers using {base_model} as base model...')
     # precompute embeddings for visualizations
     sentence_model = SentenceTransformer(base_model)
     embeddings = sentence_model.encode(df[text_column].to_numpy(), show_progress_bar=True)
@@ -85,6 +84,7 @@ def BERT_topic(df, text_column, dir_out, lang):
         with open(processing_config['seed_topic_list']) as f:
             lines = f.readlines()
             seed_topic_list = [[w.strip() for w in l.split(',')] for l in lines]
+            print('Using seed topics:\n', seed_topic_list)
     else:
         seed_topic_list = None
 
@@ -329,6 +329,7 @@ def NMF_model(df, text_column_name, dir_out):
         random_state=42
     )
 
+    print('Fitting NMF model...')
     nmf.fit(X)
 
     scores = nmf.transform(X)
@@ -499,9 +500,6 @@ def top_2_vec(df, text_column, dir_out):
     default_models = {
         'doc2vec', 
         'universal-sentence-encoder', 
-        'universal-sentence-encoder-large', 
-        'universal-sentence-encoder-multilingual', 
-        'universal-sentence-encoder-multilingual-large',
         'distiluse-base-multilingual-cased',
         'all-MiniLM-L6-v2',
         'paraphrase-multilingual-MiniLM-L12-v2'
@@ -512,11 +510,13 @@ def top_2_vec(df, text_column, dir_out):
         embedding_model = processing_config['model']
         if embedding_model not in default_models:
             raise KeyError(
-                """embedding_model must be one of: 'doc2vec', 'universal-sentence-encoder', 'universal-sentence-encoder-large', 'universal-sentence-encoder-multilingual', 'universal-sentence-encoder-multilingual-large', 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', 'paraphrase-multilingual-MiniLM-L12-v2'"""
+                """embedding_model must be one of: 'doc2vec', 'universal-sentence-encoder', 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', 'paraphrase-multilingual-MiniLM-L12-v2'"""
                 )
     else:
         embedding_model = ''
 
+    print(f'    Fitting Top2Vec model...')
+    print(f'    Using {embedding_model} as embedding model...')
     model = Top2Vec(
         df[text_column].tolist(), 
         embedding_model=embedding_model,
@@ -586,14 +586,12 @@ def top_2_vec(df, text_column, dir_out):
     topic_term_matrix = topic_term_matrix.apply(pd.to_numeric, errors='coerce').fillna(0)
 
     print("Generating visualizations...")
-    print('    Keyword barcharts...')
     # visualizations
     #keywords
     bar_charts = top2vec_visualize_barchart(model, reduced, top_n_topics=len(topic_idx), n_words=10, width=400)
     bar_charts.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     #2D document plot
-    print('    Document plot...')
     docs = df[text_column].tolist()
     documents_fig = top2vec_visualize_documents(model, annotations, reduced, docs)
     documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
