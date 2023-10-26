@@ -21,13 +21,15 @@ from top2vec import Top2Vec
 
 #BERTopic
 from bertopic import BERTopic
-from transformers.pipelines import pipeline
 from umap import UMAP
+from sentence_transformers import SentenceTransformer
+from transformers.pipelines import pipeline
 
 #Visualizations
-import plotly.graph_objects as go
 import umap
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from visualizations import *
 
 rd.seed(42)
 
@@ -49,25 +51,34 @@ else:
     raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
 
 #_____________________________________________________________________________________________
-def BERT_topic(df, text_column, dir_out):
+def BERT_topic(df, text_column, dir_out, lang):
 
     """
     Training pipeline for BERTopic
     Arguments:
-        df: pd.DataFrame with corpus
-        text_column: text column name (str)
-        dir_out: output dir
+        df: pd.DataFrame with corpus,
+        text_column: text column name (str),
+        dir_out: output dir,
+        lang: language
     Returns:
         Topic document matrix
         Keywords per topic dataframe
         Topic keyword matrix
     """
 
-    #get base model
-    if processing_config['model'].strip():
-        embedding_model = pipeline("feature-extraction", processing_config['model'])
+    # Load embedding model
+    print('    Computing embeddings with SentenceTransformers...')
+    if not processing_config['model'].strip():
+        if lang == 'english':
+            base_model = 'all-MiniLM-L6-v2' # default model for English
+        else:
+            base_model = 'paraphrase-multilingual-MiniLM-L12-v2' # default model for all other languages
     else:
-        embedding_model = None
+        base_model = processing_config['model'].strip() # custom model
+
+    # precompute embeddings for visualizations
+    sentence_model = SentenceTransformer(base_model)
+    embeddings = sentence_model.encode(df[text_column].to_numpy(), show_progress_bar=True)
 
     #check if seed topics were provided
     if processing_config['seed_topic_list']:
@@ -87,39 +98,35 @@ def BERT_topic(df, text_column, dir_out):
             random_state=42)
 
     #instantiate topic model object
-    if embedding_model:
-        topic_model = BERTopic(
-            n_gram_range=(1, int(processing_config['upper_ngram_range'])),
-            language=processing_config['lang'],
-            top_n_words=int(processing_config['n_keywords']),
-            min_topic_size=int(processing_config['min_topic_size']),
-            seed_topic_list=seed_topic_list,
-            embedding_model=embedding_model, 
-            nr_topics=int(processing_config['topic_reduction']),
-            calculate_probabilities=True,
-            umap_model=umap,
+    topic_model = BERTopic(
+        n_gram_range=(1, int(processing_config['upper_ngram_range'])),
+        language=processing_config['lang'],
+        top_n_words=10,
+        min_topic_size=int(processing_config['min_topic_size']),
+        seed_topic_list=seed_topic_list,
+        embedding_model=sentence_model, 
+        nr_topics=int(processing_config['topic_reduction']),
+        calculate_probabilities=True,
+        umap_model=umap,
+    )
+
+    print('    Fitting BERTopic model...')
+    _, probs = topic_model.fit_transform(df[text_column].to_numpy())
+    topic_idx = topic_model.get_topic_info()['Topic']
+
+    # fit the model
+    _, probs = topic_model.fit_transform(
+        df[text_column].to_numpy(), 
+        embeddings=embeddings
         )
     
-    else:
-        topic_model = BERTopic(
-            n_gram_range=(1, int(processing_config['upper_ngram_range'])),
-            language=processing_config['lang'],
-            top_n_words=int(processing_config['n_keywords']),
-            min_topic_size=int(processing_config['min_topic_size']),
-            seed_topic_list=seed_topic_list,
-            nr_topics=int(processing_config['topic_reduction']),
-            calculate_probabilities=True,
-            umap_model=umap,
-        )
-
-    _, probs = topic_model.fit_transform(df[text_column].to_numpy())
+    print('    Generating outputs...')
     topic_idx = topic_model.get_topic_info()['Topic']
     
     keywords = []
 
     for i in topic_idx: 
         topic_keywords = [x[0] for x in topic_model.get_topic(i)]
-        topic_keywords = ', '.join(topic_keywords)
         keywords.append(topic_keywords)
 
     keyword_df = pd.DataFrame(data={
@@ -141,6 +148,9 @@ def BERT_topic(df, text_column, dir_out):
     topic_term_matrix = pd.DataFrame(topic_term_weights)
     topic_term_matrix.index = topic_idx
     topic_term_matrix.columns = vocab
+
+    # Generate visualizations
+    generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings)
     
     return topic_doc_matrix, keyword_df, topic_term_matrix
 
@@ -179,7 +189,7 @@ def LDA_model(df, text_column_name, dir_out):
 
     #vectorize text
     texts = df[text_column_name]
-    vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    vectorizer = CountVectorizer(min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
     X = vectorizer.fit_transform(texts)
 
     #initialize and fit model
@@ -202,7 +212,7 @@ def LDA_model(df, text_column_name, dir_out):
 
     for topic in topic_idx:
         tmp = components_df.iloc[topic]
-        keywords.append(tmp.nlargest(int(processing_config['n_keywords'])).index.tolist())
+        keywords.append(tmp.nlargest(10).index.tolist())
 
     #get text indices
     if input_config['input_format'] == 'zip':
@@ -217,64 +227,25 @@ def LDA_model(df, text_column_name, dir_out):
         data[str(t)] = [scores[i][t] for i in range(len(scores))] 
     topic_doc_matrix = pd.DataFrame(data=data)
 
+    new_topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])  
+    annotations = new_topic_doc_matrix.apply(lambda row: row.idxmax(), axis=1).tolist()
+
     #create keyword_df with keywords per topic
     keyword_df = pd.DataFrame(data={
         'idx': topic_idx,
         'keywords': keywords,
     }) 
 
-    # Generate two-dimensional UMAP visualization of document topics
-    # Reduce dimensionality using UMAP
-    umap_model = umap.UMAP(n_components=2, random_state=42)
-    umap_embeddings = umap_model.fit_transform(scores)
+    # Generate visualizations
+    print("Generate visualizations...")
+    keyword_barcharts = lda_visualize_barchart(lda, vectorizer, annotations)
+    keyword_barcharts.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
-    # Create a scatter plot
-    plt.figure(figsize=(10, 8))
-    for i, label in enumerate(topic_idx):
-        plt.scatter(umap_embeddings[:, 0][scores.argmax(axis=1) == i],
-                    umap_embeddings[:, 1][scores.argmax(axis=1) == i],
-                    label=label)
-        
-    plt.title('UMAP Visualization of Documents per Topic with LDA')
-    plt.legend()
-    plt.savefig(os.path.join(dir_out, 'UMAP_visualization.png'))
-    plt.show()
+    # document topic plot
+    document_topic_fig = nmf_visualize_documents(lda, vectorizer, X, annotations, texts)
+    document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     return topic_doc_matrix, keyword_df, components_df
-
-def generate_bar_charts(df, dir_out):
-
-    """
-    Generate bar chart with top 20 keywords per topic. Value is weight of the keyword.
-    Arguments:
-        df: topic term matrix
-        dir_out: output_dir
-    Returns:
-        None
-    """
-
-    # Iterate over each topic in the dataframe
-    for topic in df.index:
-        topic_data = df.loc[topic].sort_values(ascending=False)[:20]
-        
-        # Create a horizontal bar chart using Plotly
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=topic_data.values,
-            y=topic_data.index,
-            orientation='h',
-        ))
-        
-        # Set the title and axis labels
-        fig.update_layout(
-            title=f'Topic {topic}',
-            xaxis_title='Weight',
-            yaxis_title='Term',
-            yaxis=dict(autorange="reversed"),
-        )
-        
-        # Display the bar chart
-        fig.write_image(dir_out + '/topic_term_weights/' + f'topic_{topic}_term_weights.png')
 
 def plot_document_topics_umap(model, texts, label_names, output_dir):
     """
@@ -348,8 +319,8 @@ def NMF_model(df, text_column_name, dir_out):
         Topic keyword matrix
     """
 
-    texts = df[text_column_name]
-    vectorizer = CountVectorizer(ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    texts = df[text_column_name].to_numpy()
+    vectorizer = CountVectorizer(min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
     X = vectorizer.fit_transform(texts)
 
     nmf = NMF(
@@ -363,12 +334,13 @@ def NMF_model(df, text_column_name, dir_out):
     scores = nmf.transform(X)
     components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names())
 
+    print("Generating output...")
     #get keywords per topic
     keywords = []
     topic_idx = range(components_df.shape[0])
     for topic in topic_idx:
         tmp = components_df.iloc[topic]
-        keywords.append(tmp.nlargest(int(processing_config['n_keywords'])).index.tolist())
+        keywords.append(tmp.nlargest(10).index.tolist())
 
     #get text indices
     if input_config['input_format'] == 'zip':
@@ -382,6 +354,8 @@ def NMF_model(df, text_column_name, dir_out):
     for t in topic_idx:
         data[str(t)] = [scores[i][t] for i in range(len(scores))] 
     topic_doc_matrix = pd.DataFrame(data=data)
+    new_topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])  
+    annotations = new_topic_doc_matrix.apply(lambda row: row.idxmax(), axis=1).tolist()
 
     #create df with keywords per topic
     keyword_df = pd.DataFrame(data={
@@ -389,22 +363,15 @@ def NMF_model(df, text_column_name, dir_out):
         'keywords': keywords,
     })
 
-    # Generate two-dimensional UMAP visualization of document topics
-    # Reduce dimensionality using UMAP
-    umap_model = umap.UMAP(n_components=2, random_state=42)
-    umap_embeddings = umap_model.fit_transform(scores)
+    # Generate visualizations
+    print("Generating visualizations...")
+    # keywords
+    keywords_fig = nmf_visualize_barchart(nmf, vectorizer, annotations)
+    keywords_fig.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
-    # Create a scatter plot
-    plt.figure(figsize=(10, 8))
-    for i, label in enumerate(topic_idx):
-        plt.scatter(umap_embeddings[:, 0][scores.argmax(axis=1) == i],
-                    umap_embeddings[:, 1][scores.argmax(axis=1) == i],
-                    label=label)
-        
-    plt.title('UMAP Visualization of Documents per Topic with NMF')
-    plt.legend()
-    plt.savefig(os.path.join(dir_out, 'UMAP_visualization.png'))
-    plt.show()
+    # document topic plot
+    document_topic_fig = nmf_visualize_documents(nmf, vectorizer, X, annotations, texts)
+    document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     return topic_doc_matrix, keyword_df, components_df
 
@@ -425,16 +392,20 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_cu
         Preprocessed Str
     """
 
-    #lemmatize
+    #tokenize/lemmatize
+    disable = ['ner']
+    if not lemmatize or not tokenize:
+        disable.extend(['parser', 'tagger'])
+
     if tokenize and lemmatize:
-        doc = nlp(text)
+        doc = nlp(text, disable=disable)
         text = ' '.join([t.lemma_ for t in doc])
     elif tokenize and not lemmatize:
-        doc = nlp(text)
+        doc = nlp(text, disable=disable)
         text = ' '.join([t.text for t in doc])
     elif not tokenize and lemmatize:
-        raise ValueError("'tokenize' cannot be False if 'lemmatize' is set to True.")
-    else:
+        raise ValueError("'tokenize' cannot be False if 'lemmatize' is True. Please change your configuration file.")
+    else: # no preprocessing with spacy
         pass
 
     #lowercase
@@ -465,7 +436,11 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_cu
 
     return text
 
-def proportion_unique_words(topics, topk=10):
+def calculate_proportion_of_unique_words(topic, topk):
+    unique_words = set(topic[:topk])
+    return len(unique_words) / topk
+
+def compute_diversity(topics, topk=10):
     """
     Compute the proportion of unique words. Used as diversity score for evaluation. 
     Arguments:
@@ -477,11 +452,16 @@ def proportion_unique_words(topics, topk=10):
     if topk > len(topics[0]):
         raise Exception('Words in topics are less than '+str(topk))
     else:
-        unique_words = set()
+        diversity_scores = []
+    
         for topic in topics:
-            unique_words = unique_words.union(set(topic[:topk]))
-        puw = len(unique_words) / (topk * len(topics))
-        return round(puw, 3)
+            puw = calculate_proportion_of_unique_words(topic, topk)
+            diversity_scores.append(puw)
+        
+        # Calculate the average diversity score
+        average_diversity_score = sum(diversity_scores) / len(diversity_scores)
+        
+        return average_diversity_score
 
 
 def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
@@ -506,7 +486,7 @@ def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
 def top_2_vec(df, text_column, dir_out):
 
     """
-    Training pipeline for Top2Vec
+    Training pipeline for Top2Vec. Also creates visualizations.
     Arguments:
         df: pd.DataFrame with corpus
         text_column: text column name (str)
@@ -555,29 +535,21 @@ def top_2_vec(df, text_column, dir_out):
 
     #GET_KEYWORDS__________________________________________________________________________________
     keywords = []
-    n_keywords = int(processing_config['n_keywords'])
+    n_keywords = 10
 
-    if not reduced:
-        n_topics = model.get_num_topics()
-        topic_idx = list(range(n_topics))
+    n_topics = model.get_num_topics(reduced=reduced)
+    topic_idx = list(range(n_topics))
 
-        for i in topic_idx:
-            topic_keywords = model.topic_words[i].tolist()
-            if len(topic_keywords) >= n_keywords:
-                topic_keywords = topic_keywords[:n_keywords]
-            topic_keywords = ', '.join(topic_keywords)
-            keywords.append(topic_keywords)
-
-    else:
-        n_topics = len([t for t in model.topic_words_reduced])
-        topic_idx = list(range(n_topics))
-
-        for i in topic_idx:
+    for i in topic_idx:
+        if reduced:
             topic_keywords = model.topic_words_reduced[i].tolist()
-            if len(topic_keywords) >= n_keywords:
-                topic_keywords = topic_keywords[:n_keywords]
-            topic_keywords = ', '.join(topic_keywords)
-            keywords.append(topic_keywords)
+        else:
+            topic_keywords = model.topic_words[i].tolist()
+
+        if len(topic_keywords) >= n_keywords:
+            topic_keywords = topic_keywords[:n_keywords]
+        topic_keywords = ', '.join(topic_keywords)
+        keywords.append(topic_keywords)
 
     keyword_df = pd.DataFrame(data={'topic_id': topic_idx, 'keywords': keywords})
 
@@ -596,12 +568,35 @@ def top_2_vec(df, text_column, dir_out):
         topic_doc_matrix = topic_doc_matrix.append(row, ignore_index=True)
     topic_doc_matrix.insert(loc=0, column='idx', value=idx)
 
-    # create topic_term_matrix
-    topic_term_matrix = pd.DataFrame()
-    topic_term_matrix.index = topic_idx
-    for i, topic in enumerate(topic_idx):
-        for word, score in zip(model.topic_words[i], model.topic_word_scores[i]):
-            topic_term_matrix.at[topic, word] = score
-    topic_term_matrix = topic_term_matrix.fillna(0)
+    new_topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])  
+    annotations = new_topic_doc_matrix.apply(lambda row: row.idxmax(), axis=1).tolist()
+
+    # Create topic term matrix
+    if not reduced:
+        topic_term_matrix = pd.DataFrame(0, index=topic_idx, columns=model.topic_words[0])
+        for i, topic in enumerate(topic_idx):
+            words = model.topic_words[i]
+            scores = model.topic_word_scores[i]
+            topic_term_matrix.loc[topic, words] = scores
+    else:
+        topic_term_matrix = pd.DataFrame(0, index=topic_idx, columns=model.topic_words_reduced[0])
+        for i, topic in enumerate(topic_idx):
+            words = model.topic_words_reduced[i]
+            scores = model.topic_word_scores_reduced[i]
+            topic_term_matrix.loc[topic, words] = scores       
+    topic_term_matrix = topic_term_matrix.apply(pd.to_numeric, errors='coerce').fillna(0)
+
+    print("Generating visualizations...")
+    print('    Keyword barcharts...')
+    # visualizations
+    #keywords
+    bar_charts = top2vec_visualize_barchart(model, reduced, top_n_topics=len(topic_idx), n_words=10, width=400)
+    bar_charts.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
+
+    #2D document plot
+    print('    Document plot...')
+    docs = df[text_column].tolist()
+    documents_fig = top2vec_visualize_documents(model, annotations, reduced, docs)
+    documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
     
     return topic_doc_matrix, keyword_df, topic_term_matrix

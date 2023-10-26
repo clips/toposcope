@@ -11,10 +11,9 @@ config_object["INPUT_CONFIG"] = {
 }
 
 config_object["BERTOPIC_CONFIG"] = {
-    "model": '', # embedding model to use (any HuggingFace model)
+    "model": '', # embedding model to use (any HuggingFace model); empty will result in default model 
     "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
-    "min_topic_size": 5, # minimum number of documents per topic, must be 1<
-    "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
+    "min_topic_size": 2, # minimum number of documents per topic, must be 1<
     "preprocess": 1, # 0 (no) or 1 (yes)
     "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)
@@ -25,14 +24,13 @@ config_object["BERTOPIC_CONFIG"] = {
     "remove_punct": 1, # 0 (no) or 1 (yes)
     "lowercase": 1, # 0 (no) or 1 (yes)
     "upper_ngram_range": 1, # upper ngram range for keywords, creates ngrams for range (1, n), must be 0<
-    "lang": 'english' # 'dutch', 'english', 'french', 'german'; relevant for stopwords, tokenization, lemmatization
+    "lang": 'english' # 'dutch', 'english', 'french', 'german'; relevant for stopwords, tokenization, lemmatization, embedding model selection (if not specified above)
 }
 
 config_object["TOP2VEC_CONFIG"] = {
-    "model": 'doc2vec', # Any of the following: "doc2vec", "universal-sentence-encoder", "universal-sentence-encoder-multilingual", "distiluse-base-multilingual-cased"
+    "model": 'universal-sentence-encoder', # Any of the following: "doc2vec", "universal-sentence-encoder", "universal-sentence-encoder-multilingual", "distiluse-base-multilingual-cased", only use "universal-sentence-encoder" for English data
     "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
-    "min_topic_size": 5, # minimum number of documents per topic, must be 1<
-    "n_keywords": 10, # number of keywords to extract per topic, must be 1<, will be set to default value of the library if not specified
+    "min_topic_size": 2, # minimum number of documents per topic, must be 1<
     "preprocess": 1, # 0 (no) or 1 (yes)
     "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)
@@ -43,12 +41,11 @@ config_object["TOP2VEC_CONFIG"] = {
     "remove_punct": 1, # 0 (no) or 1 (yes)
     "lowercase": 1, # 0 (no) or 1 (yes)
     "upper_ngram_range": 1, #upper ngram range for keywords, creates ngrams for range (1, n)
-    "lang": 'english' # 'dutch', 'english', 'french', 'german'; relevant for stopwords, tokenization, lemmatization
+    "lang": 'english' # 'dutch', 'english', 'french', 'german'; relevant for stopwords, tokenization, lemmatization, embedding model selection
 }
 
 config_object["LDA_CONFIG"] = {
     "n_components": 10, # number of topics to detect
-    "n_keywords": 10, # number of keywords to extract per topic
     "preprocess": 1, # 0 (no) or 1 (yes)
     "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)
@@ -63,7 +60,6 @@ config_object["LDA_CONFIG"] = {
 
 config_object["NMF_CONFIG"] = {
     "n_components": 10, # number of topics to detect
-    "n_keywords": 10, #number of keywords to extract per topic
     "preprocess": 1, # 0 (no) or 1 (yes)
     "tokenize": 1, # 0 (no) or 1 (yes), must be 1 if 'lemmatize' is 1 or will result in error
     "lemmatize": 0, # 0 (no) or 1 (yes)

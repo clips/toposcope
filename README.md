@@ -59,4 +59,4 @@ Create the config file by running ```python create_config.py``` and start the pi
 
 ```topic_term_matrix.csv``` matrix containing the weights of all tokens with respect to the topics
 
-```topic_term_weights``` folder containing visualizations for the most important keywords per topic and their weights
+```visualizations``` folder containing html visualizations of the topic modeling results

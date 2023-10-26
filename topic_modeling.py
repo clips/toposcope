@@ -98,12 +98,12 @@ def main():
         assert os.path.exists(dir_out) == False
 
     os.mkdir(dir_out)
-    os.mkdir(os.path.join(dir_out, 'topic_term_weights'))
+    os.mkdir(os.path.join(dir_out, 'visualizations'))
 
 #FIT_MODEL_____________________________________________________________________________________
     print("Fitting model...")
     if input_config['algorithm'] == 'BERTopic':
-        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out)
+        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out, lang)
     
     elif input_config['algorithm'] == 'LDA':
         topic_doc_matrix, keyword_df, topic_term_matrix = LDA_model(df, text_column, dir_out)
@@ -122,7 +122,7 @@ def main():
     print('    Coherence')
     coherence_score = coherence(keywords, texts)
     print('    Diversity')
-    diversity = proportion_unique_words(keywords)
+    diversity = compute_diversity(keywords)
 
 #SAVE_OUTPUT__________________________________________________________________________________
     print('Generating output...')
@@ -140,15 +140,21 @@ def main():
     topic_term_matrix.sort_index(axis=1, inplace=True)
     topic_term_matrix.to_csv(os.path.join(dir_out, 'topic_term_matrix.csv'))
 
-    #ANNOTATIONS
+    #TOPIC-DOC MATRIX
     idx_column = topic_doc_matrix['idx']
     topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])
     topic_doc_matrix.sort_index(axis=1, inplace=True)
     topic_doc_matrix = pd.concat([idx_column, topic_doc_matrix], axis=1)
     topic_doc_matrix.to_csv(os.path.join(dir_out, 'topic_doc_matrix.csv'), index=False)
 
+    #ANNOTATIONS
+    idx_column = topic_doc_matrix['idx']
+    topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])  
+    label_column = topic_doc_matrix.apply(lambda row: row.idxmax(), axis=1)
+    topic_doc_matrix = pd.concat([idx_column, label_column], axis=1)
+    topic_doc_matrix.to_csv(os.path.join(dir_out, 'annotations.csv'), index=False)
+
     #VISUALIZATION (to do)
-    generate_bar_charts(topic_term_matrix, dir_out)
     print('Done!')
 #______________________________________________________________________________________________
 if __name__ == "__main__":
