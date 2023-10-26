@@ -375,7 +375,7 @@ def NMF_model(df, text_column_name, dir_out):
 
     return topic_doc_matrix, keyword_df, components_df
 
-def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_custom_stopwords, remove_punct, lowercase):
+def preprocess(text, nlp, lang, tokenize, lemmatize, remove_nltk_stopwords, remove_custom_stopwords, remove_punct, lowercase):
 
     """Preprocess input text.
     Arguments:
@@ -384,7 +384,7 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_cu
         lang: language ('dutch', 'english', 'french', 'german'),
         tokenize: bool (True = tokenize)
         lemmatize: bool (True = lemmatize),
-        remove_stopwords: bool (True = remove stopwords),
+        remove_nltk_stopwords: bool (True = remove stopwords),
         remove_custom_stopwords: bool (True = remove custom stopwords),
         remove_punct: bool (True = remove punctuation),
         lowercase: bool (True = lowercase),
@@ -413,17 +413,16 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_stopwords, remove_cu
         text = text.lower()
 
     #remove NLTK stopwords
-    if remove_stopwords:
+    if remove_nltk_stopwords:
         stop_words = stopwords.words(lang)
         text = ' '.join([t for t in text.split() if t.lower() not in stop_words])
 
     #remove custom stop words
     #to do: allow phrases and regex
-    custom_stopword_dir = processing_config['custom_stopword_list']
-    if custom_stopword_dir.strip() and remove_custom_stopwords:
-        with open(custom_stopword_dir) as x:
+    if remove_custom_stopwords:
+        with open(remove_custom_stopwords) as x:
             lines = x.readlines()
-            custom_stopwords = [l.strip() for l in lines]
+            custom_stopwords = set([l.strip() for l in lines])
             text = ' '.join([t for t in text.split() if t.lower() not in custom_stopwords])
 
     # remove punctuation

@@ -48,8 +48,8 @@ def main():
     if do_preprocess:
         tokenize = int(processing_config['tokenize'])
         lemmatize = int(processing_config['lemmatize'])
-        remove_stopwords = int(processing_config['remove_stopwords'])
-        remove_custom_stopwords = int(processing_config['remove_custom_stopwords'])
+        remove_nltk_stopwords = int(processing_config['remove_nltk_stopwords'])
+        remove_custom_stopwords = processing_config['remove_custom_stopwords'].strip()
         remove_punct = int(processing_config['remove_punct'])
         lowercase = int(processing_config['lowercase'])
         lang = processing_config['lang']
@@ -68,7 +68,7 @@ def main():
 
         print("    Tokenize:", bool(tokenize))
         print("    Lemmatize:", bool(lemmatize))
-        print("    Remove stopwords:", bool(remove_stopwords))
+        print("    Remove NLTK stopwords:", bool(remove_nltk_stopwords))
         print("    Remove custom stopwords:", bool(remove_custom_stopwords))
         print("    Lowercase:", bool(lowercase))
         print("    Remove punctuation:", bool(remove_punct))
@@ -79,7 +79,7 @@ def main():
             lang, 
             tokenize,
             lemmatize, 
-            remove_stopwords, 
+            remove_nltk_stopwords, 
             remove_custom_stopwords, 
             remove_punct, 
             lowercase)
