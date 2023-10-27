@@ -118,9 +118,9 @@ def main():
 #EVALUATION____________________________________________________________________________________
     print('Evaluating model...')
     texts = [doc.split() for doc in df[text_column]]
-    print('    Coherence')
+    print('    - Coherence')
     coherence_score = coherence(keywords, texts)
-    print('    Diversity')
+    print('    - Diversity')
     diversity = compute_diversity(keywords)
 
 #SAVE_OUTPUT__________________________________________________________________________________

@@ -83,7 +83,7 @@ def BERT_topic(df, text_column, dir_out, lang):
     if processing_config['seed_topic_list']:
         with open(processing_config['seed_topic_list']) as f:
             lines = f.readlines()
-            seed_topic_list = [[w.strip() for w in l.split(',')] for l in lines]
+            seed_topic_list = [[w.strip() for w in l.split(',')] for l in lines if l.strip()]
             print('\nUsing seed topics:\n', seed_topic_list)
     else:
         seed_topic_list = None
@@ -167,7 +167,6 @@ def coherence(topics, texts):
 
     dictionary = Dictionary(texts)
     corpus = [dictionary.doc2bow(text) for text in texts]
-
     coherence_model = CoherenceModel(topics=topics, corpus=corpus, dictionary=dictionary, coherence='u_mass')
     coherence_score = coherence_model.get_coherence()
 
@@ -516,7 +515,7 @@ def top_2_vec(df, text_column, dir_out):
         embedding_model = ''
 
     print(f'\nFitting Top2Vec model...')
-    print(f'Using {embedding_model} as embedding model...')
+    print(f'Using {embedding_model} as embedding model...\n')
     model = Top2Vec(
         df[text_column].tolist(), 
         embedding_model=embedding_model,
@@ -595,5 +594,9 @@ def top_2_vec(df, text_column, dir_out):
     docs = df[text_column].tolist()
     documents_fig = top2vec_visualize_documents(model, annotations, reduced, docs)
     documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
+
+    #hierarchy
+    hierarchy_fig = top2vec_visualize_hierarchy(model, annotations, reduced)
+    hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
     
     return topic_doc_matrix, keyword_df, topic_term_matrix
