@@ -34,7 +34,6 @@ In ```create_config.py```, specify the following:
 Then, specify parameters related to the chosen algorithm:
 - Base model (for BERTopic and Top2Vec)
 - Number of topics
-- Use pre-defined list of seed topics (for BERTopic and Top2Vec) 
 - ...
 
 And specify which preprocessing steps to apply to your data:
