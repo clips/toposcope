@@ -79,15 +79,6 @@ def BERT_topic(df, text_column, dir_out, lang):
     sentence_model = SentenceTransformer(base_model)
     embeddings = sentence_model.encode(df[text_column].to_numpy(), show_progress_bar=True)
 
-    #check if seed topics were provided
-    if processing_config['seed_topic_list']:
-        with open(processing_config['seed_topic_list']) as f:
-            lines = f.readlines()
-            seed_topic_list = [[w.strip() for w in l.split(',')] for l in lines if l.strip()]
-            print('\nUsing seed topics:\n', seed_topic_list)
-    else:
-        seed_topic_list = None
-
     # define umap model with default BERTopic values, 
     # but with random state in order to ensure reproducible results
     umap = UMAP(n_neighbors=15,
@@ -103,7 +94,6 @@ def BERT_topic(df, text_column, dir_out, lang):
         language=processing_config['lang'],
         top_n_words=10,
         min_topic_size=int(processing_config['min_topic_size']),
-        seed_topic_list=seed_topic_list,
         embedding_model=sentence_model, 
         nr_topics=int(processing_config['topic_reduction']),
         calculate_probabilities=True,
@@ -346,7 +336,7 @@ def NMF_model(df, text_column_name, dir_out):
     if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
     else:
-        idx = list(df.index)
+        idx = df.index.tolist()
     
     #create doc_topic df
     data = OrderedDict()
@@ -514,6 +504,13 @@ def top_2_vec(df, text_column, dir_out):
     else:
         embedding_model = ''
 
+    umap_args = {
+        'n_neighbors': 15,
+        'n_components': 5,
+        'random_state': 42,
+        'metric': "cosine",
+    }
+
     print(f'\nFitting Top2Vec model...')
     print(f'Using {embedding_model} as embedding model...\n')
     model = Top2Vec(
@@ -522,6 +519,7 @@ def top_2_vec(df, text_column, dir_out):
         split_documents=False,
         min_count=50, #words occurring less frequently than 'min_count' are ignored
         tokenizer=tokenizer,
+        umap_args=umap_args,
     )
 
     #HIERARCHICAL_TOPIC_REDUCTION__________________________________________________________________
@@ -551,8 +549,14 @@ def top_2_vec(df, text_column, dir_out):
 
     keyword_df = pd.DataFrame(data={'topic_id': topic_idx, 'keywords': keywords})
 
-    #RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________    
-    topic_nums, topic_scores, _, __ = model.get_documents_topics(list(range(len(df))), reduced=reduced, num_topics=n_topics)
+    #RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________
+    #get text indices
+    if input_config['input_format'] == 'zip':
+        idx = df['filename'].tolist()
+    else:
+        idx = df.index.tolist()
+
+    topic_nums, topic_scores, _, __ = model.get_documents_topics(idx, reduced=reduced, num_topics=n_topics)
     
     if input_config['input_format'] == 'zip':
         idx = df['filename'].tolist()
@@ -565,9 +569,9 @@ def top_2_vec(df, text_column, dir_out):
         row = {topic: score for topic, score in zip(topic_nums[i], topic_scores[i])}
         topic_doc_matrix = topic_doc_matrix.append(row, ignore_index=True)
     topic_doc_matrix.insert(loc=0, column='idx', value=idx)
-
-    new_topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])  
-    annotations = new_topic_doc_matrix.apply(lambda row: row.idxmax(), axis=1).tolist()
+    
+    annotations, _, _, _ = model.get_documents_topics(idx, reduced=reduced, num_topics=1)
+    annotations = annotations.tolist()
 
     # Create topic term matrix
     if not reduced:

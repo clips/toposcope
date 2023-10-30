@@ -446,7 +446,7 @@ def top2vec_visualize_documents(topic_model,
 
     # Extract embeddings
     embeddings_to_reduce = topic_model.document_vectors
-    umap_model = UMAP(metric='cosine', random_state=42).fit(embeddings_to_reduce)
+    umap_model = UMAP(n_neighbors=15, metric='cosine', n_components=2, random_state=42).fit(embeddings_to_reduce)
     embeddings_2d = umap_model.embedding_
 
     unique_topics = set(topic_per_doc)
