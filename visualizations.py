@@ -17,7 +17,6 @@ import plotly.figure_factory as ff
 import plotly.express as px
 from scipy.cluster import hierarchy as sch
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import MinMaxScaler
 from umap import UMAP
 from scipy.sparse import csr_matrix
 
@@ -85,8 +84,6 @@ def top2vec_visualize_hierarchy(topic_model,
                         reduced,
                         orientation: str = "left",
                         topics: List[int] = None,
-                        top_n_topics: int = None,
-                        custom_labels: Union[bool, str] = False,
                         title: str = "<b>Hierarchical Clustering</b>",
                         width: int = 1000,
                         height: int = 600,
@@ -94,23 +91,15 @@ def top2vec_visualize_hierarchy(topic_model,
                         linkage_function: Callable[[csr_matrix], np.ndarray] = None,
                         distance_function: Callable[[csr_matrix], csr_matrix] = None,
                         color_threshold: int = 1) -> go.Figure:
-    """ Visualize a hierarchical structure of the topics
-
-    A ward linkage function is used to perform the
-    hierarchical clustering based on the cosine distance
-    matrix between topic embeddings.
-
+    """ 
+    Visualize a hierarchical structure of the topics
     Arguments:
         topic_model: A fitted Top2Vec instance.
+        annotations: topic annotations,
+        reduced: Bool (True if hierarchical topic reduction is used),
         orientation: The orientation of the figure.
                      Either 'left' or 'bottom'
         topics: A selection of topics to visualize
-        top_n_topics: Only select the top n most frequent topics
-        custom_labels: If bool, whether to use custom topic labels that were defined using 
-                       `topic_model.set_topic_labels`.
-                       If `str`, it uses labels from other aspects, e.g., "Aspect1".
-                       NOTE: Custom labels are only generated for the original 
-                       un-merged topics.
         title: Title of the plot.
         width: The width of the figure. Only works if orientation is set to 'left'
         height: The height of the figure. Only works if orientation is set to 'bottom'
@@ -134,38 +123,8 @@ def top2vec_visualize_hierarchy(topic_model,
         color_threshold: Value at which the separation of clusters will be made which
                          will result in different colors for different clusters.
                          A higher value will typically lead in less colored clusters.
-
     Returns:
         fig: A plotly figure
-
-    Examples:
-
-    To visualize the hierarchical structure of
-    topics simply run:
-
-    ```python
-    topic_model.visualize_hierarchy()
-    ```
-
-    If you also want the labels visualized of hierarchical topics,
-    run the following:
-
-    ```python
-    # Extract hierarchical topics and their representations
-    hierarchical_topics = topic_model.hierarchical_topics(docs)
-
-    # Visualize these representations
-    topic_model.visualize_hierarchy(hierarchical_topics=hierarchical_topics)
-    ```
-
-    If you want to save the resulting figure:
-
-    ```python
-    fig = topic_model.visualize_hierarchy()
-    fig.write_html("path/to/file.html")
-    ```
-    <iframe src="../../getting_started/visualization/hierarchy.html"
-    style="width:1000px; height: 680px; border: 0px;""></iframe>
     """
     if distance_function is None:
         distance_function = lambda x: 1 - cosine_similarity(x)
@@ -394,64 +353,29 @@ def validate_distance_matrix(X, n_samples):
 def top2vec_visualize_documents(topic_model,
                         annotations,
                         reduced,
-                        docs: List[str],
-                        topics: List[int] = None,
-                        sample: float = None,
-                        hide_annotations: bool = False,
-                        hide_document_hover: bool = False,
                         title: str = "<b>Documents and Topics</b>",
                         width: int = 1200,
                         height: int = 750):
-    """ Visualize documents and their topics in 2D
-
+    """ 
+    Visualize documents and their topics in 2D
     Arguments:
         topic_model: A fitted Top2Vec instance.
-        docs: The documents you used when calling either `fit` or `fit_transform`
-        topics: A selection of topics to visualize.
-                Not to be confused with the topics that you get from `.fit_transform`.
-                For example, if you want to visualize only topics 1 through 5:
-                `topics = [1, 2, 3, 4, 5]`.
-        embeddings: The embeddings of all documents in `docs`.
-        reduced_embeddings: The 2D reduced embeddings of all documents in `docs`.
-        sample: The percentage of documents in each topic that you would like to keep.
-                Value can be between 0 and 1. Setting this value to, for example,
-                0.1 (10% of documents in each topic) makes it easier to visualize
-                millions of documents as a subset is chosen.
-        hide_annotations: Hide the names of the traces on top of each cluster.
-        hide_document_hover: Hide the content of the documents when hovering over
-                             specific points. Helps to speed up generation of visualization.
-        custom_labels: If bool, whether to use custom topic labels that were defined using 
-                       `topic_model.set_topic_labels`.
-                       If `str`, it uses labels from other aspects, e.g., "Aspect1".
+        reduced: Bool (True if hierarchical reduction was used)
         title: Title of the plot.
         width: The width of the figure.
         height: The height of the figure.
     """
-    topic_per_doc = annotations
 
-    # Sample the data to optimize for visualization and dimensionality reduction
-    if sample is None or sample > 1:
-        sample = 1
-
-    indices = []
-    for topic in set(topic_per_doc):
-        s = np.where(np.array(topic_per_doc) == topic)[0]
-        size = len(s) if len(s) < 100 else int(len(s) * sample)
-        indices.extend(np.random.choice(s, size=size, replace=False))
-    indices = np.array(indices)
-
-    df = pd.DataFrame({"topic": np.array(topic_per_doc)[indices]})
-    df["doc"] = [docs[index] for index in indices]
-    df["topic"] = [topic_per_doc[index] for index in indices]
+    df = pd.DataFrame()
+    df["doc"] = topic_model.documents
+    df["topic"] = annotations
 
     # Extract embeddings
     embeddings_to_reduce = topic_model.document_vectors
     umap_model = UMAP(n_neighbors=15, metric='cosine', n_components=2, random_state=42).fit(embeddings_to_reduce)
     embeddings_2d = umap_model.embedding_
 
-    unique_topics = set(topic_per_doc)
-    if topics is None:
-        topics = unique_topics
+    unique_topics = topics = set(annotations)
 
     # Combine data
     df["x"] = embeddings_2d[:, 0]
@@ -465,10 +389,7 @@ def top2vec_visualize_documents(topic_model,
     fig = go.Figure()
 
     # Outliers and non-selected topics
-    non_selected_topics = set(unique_topics).difference(topics)
-    if len(non_selected_topics) == 0:
-        non_selected_topics = [-1]
-
+    non_selected_topics = [-1]
     selection = df.loc[df.topic.isin(non_selected_topics), :]
     selection["text"] = ""
     selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), "Other documents"]
@@ -477,7 +398,7 @@ def top2vec_visualize_documents(topic_model,
         go.Scattergl(
             x=selection.x,
             y=selection.y,
-            hovertext=selection.doc if not hide_document_hover else None,
+            hovertext=selection.doc,
             hoverinfo="text",
             mode='markers+text',
             name="other",
@@ -492,14 +413,13 @@ def top2vec_visualize_documents(topic_model,
             selection = df.loc[df.topic == topic, :]
             selection["text"] = ""
 
-            if not hide_annotations:
-                selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), name]
+            selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), name]
 
             fig.add_trace(
                 go.Scattergl(
                     x=selection.x,
                     y=selection.y,
-                    hovertext=selection.doc if not hide_document_hover else None,
+                    hovertext=selection.doc,
                     hoverinfo="text",
                     text=selection.text,
                     mode='markers+text',
@@ -637,215 +557,133 @@ def nmf_visualize_barchart(topic_model,
 
     return fig
 
-def nmf_visualize_documents(topic_model,
-                        vectorizer,
-                        X,
-                        annotations,
-                        docs: List[str],
-                        topics: List[int] = None,
-                        embeddings: np.ndarray = None,
-                        reduced_embeddings: np.ndarray = None,
-                        sample: float = None,
-                        hide_annotations: bool = False,
-                        hide_document_hover: bool = False,
-                        custom_labels: Union[bool, str] = False,
-                        title: str = "<b>Documents and Topics</b>",
-                        width: int = 1200,
-                        height: int = 750):
-    """ Visualize documents and their topics in 2D
+# def nmf_visualize_documents(topic_model,
+#                         vectorizer,
+#                         X,
+#                         documents,
+#                         annotations,
+#                         title: str = "<b>Documents and Topics</b>",
+#                         width: int = 1200,
+#                         height: int = 750):
+#     """ 
+#     Visualize documents and their topics in 2D
+#     Arguments:
+#         topic_model: A fitted BERTopic instance.
+#         vectorizer: A fitted CountVectorizer instance.
+#         X: transformed documents
+#         documents: preprocessed documents
+#         annotations: topic annotations
+#         title: Title of the plot.
+#         width: The width of the figure.
+#         height: The height of the figure.
+#     """
+#     topic_per_doc = annotations
 
-    Arguments:
-        topic_model: A fitted BERTopic instance.
-        docs: The documents you used when calling either `fit` or `fit_transform`
-        topics: A selection of topics to visualize.
-                Not to be confused with the topics that you get from `.fit_transform`.
-                For example, if you want to visualize only topics 1 through 5:
-                `topics = [1, 2, 3, 4, 5]`.
-        embeddings: The embeddings of all documents in `docs`.
-        reduced_embeddings: The 2D reduced embeddings of all documents in `docs`.
-        sample: The percentage of documents in each topic that you would like to keep.
-                Value can be between 0 and 1. Setting this value to, for example,
-                0.1 (10% of documents in each topic) makes it easier to visualize
-                millions of documents as a subset is chosen.
-        hide_annotations: Hide the names of the traces on top of each cluster.
-        hide_document_hover: Hide the content of the documents when hovering over
-                             specific points. Helps to speed up generation of visualization.
-        custom_labels: If bool, whether to use custom topic labels that were defined using 
-                       `topic_model.set_topic_labels`.
-                       If `str`, it uses labels from other aspects, e.g., "Aspect1".
-        title: Title of the plot.
-        width: The width of the figure.
-        height: The height of the figure.
+#     df = pd.DataFrame()
+#     df["doc"] = documents
+#     df["topic"] = annotations
 
-    Examples:
+#     # Extract embeddings if not already done
+#     embeddings_to_reduce = X
 
-    To visualize the topics simply run:
+#     # Reduce input embeddings
+#     umap_model = UMAP(metric='cosine', random_state=42).fit(embeddings_to_reduce)
+#     embeddings_2d = umap_model.embedding_
 
-    ```python
-    topic_model.visualize_documents(docs)
-    ```
+#     unique_topics = topics = set(topic_per_doc)
 
-    Do note that this re-calculates the embeddings and reduces them to 2D.
-    The advised and prefered pipeline for using this function is as follows:
+#     # Combine data
+#     df["x"] = embeddings_2d[:, 0]
+#     df["y"] = embeddings_2d[:, 1]
 
-    ```python
-    from sklearn.datasets import fetch_20newsgroups
-    from sentence_transformers import SentenceTransformer
-    from bertopic import BERTopic
-    from umap import UMAP
+#     # Prepare text and names
+#     names = []
+#     for i, _ in enumerate(topic_model.components_):
+#         # Get the top N words and their corresponding scores for the topic
+#         topic_word_scores = list(enumerate(topic_model.components_[i]))
+#         top_words = sorted(topic_word_scores, key=lambda x: x[1], reverse=True)[:3]
 
-    # Prepare embeddings
-    docs = fetch_20newsgroups(subset='all',  remove=('headers', 'footers', 'quotes'))['data']
-    sentence_model = SentenceTransformer("all-MiniLM-L6-v2")
-    embeddings = sentence_model.encode(docs, show_progress_bar=False)
+#         # Extract the words and their scores
+#         words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
+#         names.append(f"{i}_" + "_".join(words))
 
-    # Train BERTopic
-    topic_model = BERTopic().fit(docs, embeddings)
+#     # Visualize
+#     fig = go.Figure()
 
-    # Reduce dimensionality of embeddings, this step is optional
-    # reduced_embeddings = UMAP(n_neighbors=10, n_components=2, min_dist=0.0, metric='cosine').fit_transform(embeddings)
+#     # Outliers and non-selected topics
+#     non_selected_topics = [-1]
+#     selection = df.loc[df.topic.isin(non_selected_topics), :]
+#     selection["text"] = ""
+#     selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), "Other documents"]
 
-    # Run the visualization with the original embeddings
-    topic_model.visualize_documents(docs, embeddings=embeddings)
+#     fig.add_trace(
+#         go.Scattergl(
+#             x=selection.x,
+#             y=selection.y,
+#             hovertext=selection.doc,
+#             hoverinfo="text",
+#             mode='markers+text',
+#             name="other",
+#             showlegend=False,
+#             marker=dict(color='#CFD8DC', size=5, opacity=0.5)
+#         )
+#     )
 
-    # Or, if you have reduced the original embeddings already:
-    topic_model.visualize_documents(docs, reduced_embeddings=reduced_embeddings)
-    ```
+#     # Selected topics
+#     for name, topic in zip(names, unique_topics):
+#         if topic in topics and topic != -1:
+#             selection = df.loc[df.topic == topic, :]
+#             selection["text"] = ""
 
-    Or if you want to save the resulting figure:
+#             selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), name]
 
-    ```python
-    fig = topic_model.visualize_documents(docs, reduced_embeddings=reduced_embeddings)
-    fig.write_html("path/to/file.html")
-    ```
+#             fig.add_trace(
+#                 go.Scattergl(
+#                     x=selection.x,
+#                     y=selection.y,
+#                     hovertext=selection.doc,
+#                     hoverinfo="text",
+#                     text=selection.text,
+#                     mode='markers+text',
+#                     name=name,
+#                     textfont=dict(
+#                         size=12,
+#                     ),
+#                     marker=dict(size=5, opacity=0.5)
+#                 )
+#             )
 
-    <iframe src="../../getting_started/visualization/documents.html"
-    style="width:1000px; height: 800px; border: 0px;""></iframe>
-    """
-    topic_per_doc = annotations
+#     # Add grid in a 'plus' shape
+#     x_range = (df.x.min() - abs((df.x.min()) * .15), df.x.max() + abs((df.x.max()) * .15))
+#     y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
+#     fig.add_shape(type="line",
+#                   x0=sum(x_range) / 2, y0=y_range[0], x1=sum(x_range) / 2, y1=y_range[1],
+#                   line=dict(color="#CFD8DC", width=2))
+#     fig.add_shape(type="line",
+#                   x0=x_range[0], y0=sum(y_range) / 2, x1=x_range[1], y1=sum(y_range) / 2,
+#                   line=dict(color="#9E9E9E", width=2))
+#     fig.add_annotation(x=x_range[0], y=sum(y_range) / 2, text="D1", showarrow=False, yshift=10)
+#     fig.add_annotation(y=y_range[1], x=sum(x_range) / 2, text="D2", showarrow=False, xshift=10)
 
-    # Sample the data to optimize for visualization and dimensionality reduction
-    if sample is None or sample > 1:
-        sample = 1
+#     # Stylize layout
+#     fig.update_layout(
+#         template="simple_white",
+#         title={
+#             'text': f"{title}",
+#             'x': 0.5,
+#             'xanchor': 'center',
+#             'yanchor': 'top',
+#             'font': dict(
+#                 size=22,
+#                 color="Black")
+#         },
+#         width=width,
+#         height=height
+#     )
 
-    indices = []
-    for topic in set(topic_per_doc):
-        s = np.where(np.array(topic_per_doc) == topic)[0]
-        size = len(s) if len(s) < 100 else int(len(s) * sample)
-        indices.extend(np.random.choice(s, size=size, replace=False))
-    indices = np.array(indices)
-
-    df = pd.DataFrame({"topic": np.array(topic_per_doc)[indices]})
-    df["doc"] = [docs[index] for index in indices]
-    df["topic"] = [topic_per_doc[index] for index in indices]
-
-    # Extract embeddings if not already done
-    embeddings_to_reduce = X
-
-    # Reduce input embeddings
-    umap_model = UMAP(metric='hellinger', random_state=42).fit(embeddings_to_reduce)
-    embeddings_2d = umap_model.embedding_
-
-    unique_topics = set(topic_per_doc)
-    if topics is None:
-        topics = unique_topics
-
-    # Combine data
-    df["x"] = embeddings_2d[:, 0]
-    df["y"] = embeddings_2d[:, 1]
-
-    # Prepare text and names
-    names = []
-    for i, _ in enumerate(topic_model.components_):
-        # Get the top N words and their corresponding scores for the topic
-        topic_word_scores = list(enumerate(topic_model.components_[i]))
-        top_words = sorted(topic_word_scores, key=lambda x: x[1], reverse=True)[:3]
-
-        # Extract the words and their scores
-        words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
-        names.append(f"{i}_" + "_".join(words))
-
-    # Visualize
-    fig = go.Figure()
-
-    # Outliers and non-selected topics
-    non_selected_topics = set(unique_topics).difference(topics)
-    if len(non_selected_topics) == 0:
-        non_selected_topics = [-1]
-
-    selection = df.loc[df.topic.isin(non_selected_topics), :]
-    selection["text"] = ""
-    selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), "Other documents"]
-
-    fig.add_trace(
-        go.Scattergl(
-            x=selection.x,
-            y=selection.y,
-            hovertext=selection.doc if not hide_document_hover else None,
-            hoverinfo="text",
-            mode='markers+text',
-            name="other",
-            showlegend=False,
-            marker=dict(color='#CFD8DC', size=5, opacity=0.5)
-        )
-    )
-
-    # Selected topics
-    for name, topic in zip(names, unique_topics):
-        if topic in topics and topic != -1:
-            selection = df.loc[df.topic == topic, :]
-            selection["text"] = ""
-
-            if not hide_annotations:
-                selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), name]
-
-            fig.add_trace(
-                go.Scattergl(
-                    x=selection.x,
-                    y=selection.y,
-                    hovertext=selection.doc if not hide_document_hover else None,
-                    hoverinfo="text",
-                    text=selection.text,
-                    mode='markers+text',
-                    name=name,
-                    textfont=dict(
-                        size=12,
-                    ),
-                    marker=dict(size=5, opacity=0.5)
-                )
-            )
-
-    # Add grid in a 'plus' shape
-    x_range = (df.x.min() - abs((df.x.min()) * .15), df.x.max() + abs((df.x.max()) * .15))
-    y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
-    fig.add_shape(type="line",
-                  x0=sum(x_range) / 2, y0=y_range[0], x1=sum(x_range) / 2, y1=y_range[1],
-                  line=dict(color="#CFD8DC", width=2))
-    fig.add_shape(type="line",
-                  x0=x_range[0], y0=sum(y_range) / 2, x1=x_range[1], y1=sum(y_range) / 2,
-                  line=dict(color="#9E9E9E", width=2))
-    fig.add_annotation(x=x_range[0], y=sum(y_range) / 2, text="D1", showarrow=False, yshift=10)
-    fig.add_annotation(y=y_range[1], x=sum(x_range) / 2, text="D2", showarrow=False, xshift=10)
-
-    # Stylize layout
-    fig.update_layout(
-        template="simple_white",
-        title={
-            'text': f"{title}",
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
-        width=width,
-        height=height
-    )
-
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False)
-    return fig
+#     fig.update_xaxes(visible=False)
+#     fig.update_yaxes(visible=False)
+#     return fig
 
 #LDA___________________________________________________________________________________________________________________________________
 def lda_visualize_barchart(topic_model,
@@ -855,8 +693,8 @@ def lda_visualize_barchart(topic_model,
                        title: str = "<b>Topic Word Scores</b>",
                        width: int = 400,
                        height: int = 250) -> go.Figure:
-    """ Visualize a barchart of selected topics
-
+    """ 
+    Visualize a barchart of selected topics
     Arguments:
         topic_model: A fitted LDA instance.
         vectorizer: A fitted vectorizer instance.
@@ -865,7 +703,6 @@ def lda_visualize_barchart(topic_model,
         title: Title of the plot.
         width: The width of each figure.
         height: The height of each figure.
-
     Returns:
         fig: A plotly figure
     """
@@ -939,4 +776,131 @@ def lda_visualize_barchart(topic_model,
     fig.update_xaxes(showgrid=True)
     fig.update_yaxes(showgrid=True)
 
+    return fig
+
+
+def nmf_lda_visualize_documents(
+        topic_model,
+        vectorizer,
+        documents,
+        X,
+        annotations,
+        title: str = "<b>Documents and Topics</b>",
+        width: int = 1200,
+        height: int = 750):
+    """ 
+    Visualize documents and their topics in 2D
+    Arguments:
+        topic_model: A fitted NMF or LDA instance.
+        vectorizer: A fitten vectorizer instance.
+        documents: Documents used to fit topic_model.
+        X: Vectorized documents.
+        title: Title of the plot.
+        width: The width of the figure.
+        height: The height of the figure.
+    """
+
+    df = pd.DataFrame(data={
+        'doc': documents,
+        'topic': annotations
+        })
+
+    # Extract embeddings
+    embeddings_to_reduce = X
+    umap_model = UMAP(n_neighbors=15, metric='cosine', n_components=2, random_state=42).fit(embeddings_to_reduce)
+    embeddings_2d = umap_model.embedding_
+
+    unique_topics = topics = set(annotations)
+
+    # Combine data
+    df["x"] = embeddings_2d[:, 0]
+    df["y"] = embeddings_2d[:, 1]
+
+    # Prepare text and names
+    names = []
+    for i, _ in enumerate(topic_model.components_):
+        # Get the top N words and their corresponding scores for the topic
+        topic_word_scores = list(enumerate(topic_model.components_[i]))
+        top_words = sorted(topic_word_scores, key=lambda x: x[1], reverse=True)[:3]
+
+        # Extract the words and their scores
+        words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
+        names.append(f"{i}_" + "_".join(words))
+
+    # Visualize
+    fig = go.Figure()
+
+    # Outliers and non-selected topics
+    non_selected_topics = [-1]
+    selection = df.loc[df.topic.isin(non_selected_topics), :]
+    selection["text"] = ""
+    selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), "Other documents"]
+
+    fig.add_trace(
+        go.Scattergl(
+            x=selection.x,
+            y=selection.y,
+            hovertext=selection.doc,
+            hoverinfo="text",
+            mode='markers+text',
+            name="other",
+            showlegend=False,
+            marker=dict(color='#CFD8DC', size=5, opacity=0.5)
+        )
+    )
+
+    # Selected topics
+    for name, topic in zip(names, unique_topics):
+        if topic in topics and topic != -1:
+            selection = df.loc[df.topic == topic, :]
+            selection["text"] = ""
+
+            selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), name]
+
+            fig.add_trace(
+                go.Scattergl(
+                    x=selection.x,
+                    y=selection.y,
+                    hovertext=selection.doc,
+                    hoverinfo="text",
+                    text=selection.text,
+                    mode='markers+text',
+                    name=name,
+                    textfont=dict(
+                        size=12,
+                    ),
+                    marker=dict(size=5, opacity=0.5)
+                )
+            )
+
+    # Add grid in a 'plus' shape
+    x_range = (df.x.min() - abs((df.x.min()) * .15), df.x.max() + abs((df.x.max()) * .15))
+    y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
+    fig.add_shape(type="line",
+                  x0=sum(x_range) / 2, y0=y_range[0], x1=sum(x_range) / 2, y1=y_range[1],
+                  line=dict(color="#CFD8DC", width=2))
+    fig.add_shape(type="line",
+                  x0=x_range[0], y0=sum(y_range) / 2, x1=x_range[1], y1=sum(y_range) / 2,
+                  line=dict(color="#9E9E9E", width=2))
+    fig.add_annotation(x=x_range[0], y=sum(y_range) / 2, text="D1", showarrow=False, yshift=10)
+    fig.add_annotation(y=y_range[1], x=sum(x_range) / 2, text="D2", showarrow=False, xshift=10)
+
+    # Stylize layout
+    fig.update_layout(
+        template="simple_white",
+        title={
+            'text': f"{title}",
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': dict(
+                size=22,
+                color="Black")
+        },
+        width=width,
+        height=height
+    )
+
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
     return fig

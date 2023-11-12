@@ -8,12 +8,12 @@ import string
 import pandas as pd
 from nltk.util import ngrams
 from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from collections import OrderedDict
 from gensim.corpora import Dictionary
 from gensim.models import CoherenceModel
 
-#LDA
+#LDA, NMF
 from sklearn.decomposition import LatentDirichletAllocation, NMF
 
 #Top2Vec
@@ -177,8 +177,9 @@ def LDA_model(df, text_column_name, dir_out):
     """
 
     #vectorize text
-    texts = df[text_column_name]
-    vectorizer = CountVectorizer(min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    print('Vectorizing texts...')
+    texts = df[text_column_name].to_numpy()
+    vectorizer = CountVectorizer(lowercase=False, min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
     X = vectorizer.fit_transform(texts)
 
     #initialize and fit model
@@ -232,7 +233,7 @@ def LDA_model(df, text_column_name, dir_out):
     keyword_barcharts.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     # document topic plot
-    document_topic_fig = nmf_visualize_documents(lda, vectorizer, X, annotations, texts)
+    document_topic_fig = nmf_lda_visualize_documents(lda, vectorizer, df[text_column_name].to_numpy(), X, annotations)
     document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     return topic_doc_matrix, keyword_df, components_df
@@ -310,7 +311,7 @@ def NMF_model(df, text_column_name, dir_out):
     """
 
     texts = df[text_column_name].to_numpy()
-    vectorizer = CountVectorizer(min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    vectorizer = TfidfVectorizer(lowercase=False, min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
     X = vectorizer.fit_transform(texts)
 
     nmf = NMF(
@@ -344,6 +345,8 @@ def NMF_model(df, text_column_name, dir_out):
     for t in topic_idx:
         data[str(t)] = [scores[i][t] for i in range(len(scores))] 
     topic_doc_matrix = pd.DataFrame(data=data)
+
+    #extract annotations
     new_topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])  
     annotations = new_topic_doc_matrix.apply(lambda row: row.idxmax(), axis=1).tolist()
 
@@ -360,7 +363,7 @@ def NMF_model(df, text_column_name, dir_out):
     keywords_fig.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     # document topic plot
-    document_topic_fig = nmf_visualize_documents(nmf, vectorizer, X, annotations, texts)
+    document_topic_fig = nmf_lda_visualize_documents(nmf, vectorizer, df[text_column_name].to_numpy(), X, annotations)
     document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     return topic_doc_matrix, keyword_df, components_df
