@@ -5,9 +5,12 @@ import itertools, os
 import numpy as np
 
 #preprocessing
-import itertools
+import itertools, warnings
 import pandas as pd
+from collections import Counter
 from scipy.spatial.distance import squareform
+from sklearn.preprocessing import normalize
+from tqdm import tqdm
 
 #Visualizations
 from typing import List, Union, Callable
@@ -45,13 +48,14 @@ else:
 
 
 #BERTOPIC________________________________________________________________________________________________________________________________
-def generate_bertopic_visualizations(model, dir_out, docs, embeddings):
+def generate_bertopic_visualizations(model, dir_out, docs, embeddings, timestamps=None):
     """
     Generate visualizations for BERTopic
     Arguments:
         model: Fitted BERTopic model,
         dir_out: output directory (str),
         docs: pandas Series containing corpus
+        timestamps: None by default
     Return:
         None
     """
@@ -77,7 +81,125 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings):
         document_fig = model.visualize_hierarchical_documents(docs, reduced_embeddings=reduced_embeddings)
     document_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
+    # topics over time
+    if timestamps:
+        topics_over_time = model.topics_over_time(docs, timestamps, evolution_tuning=False, global_tuning=False)
+        time_fig = model.visualize_topics_over_time(topics_over_time)
+        time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
+
 #TOP2VEC_________________________________________________________________________________________________________________________________
+def get_topics_over_time(documents, topic_names):
+
+    """
+    Compute topics over time.
+    Arguments
+        documents: pd.DataFrame(
+            Document: str
+            Timestamps
+            Topic
+        ),
+        topic names: dict: {topic_id: topic_id_name}
+    Returns:
+        Topics over time (list)
+    """
+    
+    # For each unique timestamp, create topic representations
+    topics_over_time = []
+    timestamps = documents.Timestamps.tolist()
+
+    for timestamp in timestamps:
+
+        selection = documents.loc[documents.Timestamps == timestamp, :]
+        documents_per_topic = selection.groupby(['Topic'], as_index=False).agg({'Document': ' '.join,
+                                                                                "Timestamps": "count"})
+        # Extract the words per topic
+        topic_frequency = pd.Series(documents_per_topic.Timestamps.values, index=documents_per_topic.Topic).to_dict()
+        topic_frequency = {int(k): v for k,v in topic_frequency.items()}
+
+        # Fill dataframe with results
+        topics_at_timestamp = [(int(topic), ", ".join(topic_names[topic].split('_')[1:]), topic_frequency[int(topic)], timestamp) for topic in topic_names]
+        topics_over_time.extend(topics_at_timestamp)
+    return topics_over_time
+
+def visualize_topics_over_time(annotations,
+                               topic_labels,
+                               topics_over_time: pd.DataFrame,
+                               normalize_frequency: bool = False,
+                               title: str = "<b>Topics over Time</b>",
+                               width: int = 1250,
+                               height: int = 450) -> go.Figure:
+    """
+    Visualize topics over time
+    Arguments:
+        topic_model: A fitted BERTopic instance.
+        topics_over_time: The topics you would like to be visualized with the
+                          corresponding topic representation
+        normalize_frequency: Whether to normalize each topic's frequency individually
+        title: Title of the plot.
+        width: The width of the figure.
+        height: The height of the figure.
+
+    Returns:
+        A plotly.graph_objects.Figure including all traces
+    """
+    colors = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#D55E00", "#0072B2", "#CC79A7"]
+
+    # Select topics based on top_n and topics args
+    frequencies = Counter(annotations)
+    freq_df = pd.DataFrame({'Topic': list(frequencies.keys()), 'Count': list(frequencies.values())})
+    freq_df = freq_df.sort_values("Count", ascending=False)
+    freq_df = freq_df.loc[freq_df.Topic != -1, :]
+
+    # Prepare data
+    topic_names = {int(key): value[:40] + "..." if len(value) > 40 else value for key, value in topic_labels.items()}
+    topics_over_time["Name"] = topics_over_time.Topic.map(topic_names)
+    data = topics_over_time.sort_values(["Topic", "Timestamp"])
+
+    # Add traces
+    fig = go.Figure()
+    for index, topic in enumerate(data.Topic.unique()):
+        trace_data = data.loc[data.Topic == topic, :]
+        topic_name = trace_data.Name.values[0]
+        words = trace_data.Words.values
+        if normalize_frequency:
+            y = normalize(trace_data.Frequency.values.reshape(1, -1))[0]
+        else:
+            y = trace_data.Frequency
+        fig.add_trace(go.Scatter(x=trace_data.Timestamp, y=y,
+                                 mode='lines',
+                                 marker_color=colors[index % 7],
+                                 hoverinfo="text",
+                                 name=topic_name,
+                                 hovertext=[f'<b>Topic {topic}</b><br>Words: {word}' for word in words]))
+
+    # Styling of the visualization
+    fig.update_xaxes(showgrid=True)
+    fig.update_yaxes(showgrid=True)
+    fig.update_layout(
+        yaxis_title="Normalized Frequency" if normalize_frequency else "Frequency",
+        title={
+            'text': f"{title}",
+            'y': .95,
+            'x': 0.40,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': dict(
+                size=22,
+                color="Black")
+        },
+        template="simple_white",
+        width=width,
+        height=height,
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        ),
+        legend=dict(
+            title="<b>Global Topic Representation",
+        )
+    )
+    return fig
 
 def top2vec_visualize_hierarchy(topic_model,
                         annotations,
@@ -384,6 +506,7 @@ def top2vec_visualize_documents(topic_model,
     # Prepare text and names
     topic_words, _, topic_nums = topic_model.get_topics(reduced=reduced)
     names = [f"{topic_num}_" + "_".join(topic[:3]) for topic_num, topic in zip(topic_nums, topic_words)]
+    topic_labels = {name.split('_')[0]: name for name in names}
 
     # Visualize
     fig = go.Figure()
@@ -461,7 +584,7 @@ def top2vec_visualize_documents(topic_model,
 
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
-    return fig
+    return fig, topic_labels
 
 # NMF___________________________________________________________________________________________________________________________________
 def nmf_visualize_barchart(topic_model,
@@ -556,134 +679,6 @@ def nmf_visualize_barchart(topic_model,
     fig.update_yaxes(showgrid=True)
 
     return fig
-
-# def nmf_visualize_documents(topic_model,
-#                         vectorizer,
-#                         X,
-#                         documents,
-#                         annotations,
-#                         title: str = "<b>Documents and Topics</b>",
-#                         width: int = 1200,
-#                         height: int = 750):
-#     """ 
-#     Visualize documents and their topics in 2D
-#     Arguments:
-#         topic_model: A fitted BERTopic instance.
-#         vectorizer: A fitted CountVectorizer instance.
-#         X: transformed documents
-#         documents: preprocessed documents
-#         annotations: topic annotations
-#         title: Title of the plot.
-#         width: The width of the figure.
-#         height: The height of the figure.
-#     """
-#     topic_per_doc = annotations
-
-#     df = pd.DataFrame()
-#     df["doc"] = documents
-#     df["topic"] = annotations
-
-#     # Extract embeddings if not already done
-#     embeddings_to_reduce = X
-
-#     # Reduce input embeddings
-#     umap_model = UMAP(metric='cosine', random_state=42).fit(embeddings_to_reduce)
-#     embeddings_2d = umap_model.embedding_
-
-#     unique_topics = topics = set(topic_per_doc)
-
-#     # Combine data
-#     df["x"] = embeddings_2d[:, 0]
-#     df["y"] = embeddings_2d[:, 1]
-
-#     # Prepare text and names
-#     names = []
-#     for i, _ in enumerate(topic_model.components_):
-#         # Get the top N words and their corresponding scores for the topic
-#         topic_word_scores = list(enumerate(topic_model.components_[i]))
-#         top_words = sorted(topic_word_scores, key=lambda x: x[1], reverse=True)[:3]
-
-#         # Extract the words and their scores
-#         words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
-#         names.append(f"{i}_" + "_".join(words))
-
-#     # Visualize
-#     fig = go.Figure()
-
-#     # Outliers and non-selected topics
-#     non_selected_topics = [-1]
-#     selection = df.loc[df.topic.isin(non_selected_topics), :]
-#     selection["text"] = ""
-#     selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), "Other documents"]
-
-#     fig.add_trace(
-#         go.Scattergl(
-#             x=selection.x,
-#             y=selection.y,
-#             hovertext=selection.doc,
-#             hoverinfo="text",
-#             mode='markers+text',
-#             name="other",
-#             showlegend=False,
-#             marker=dict(color='#CFD8DC', size=5, opacity=0.5)
-#         )
-#     )
-
-#     # Selected topics
-#     for name, topic in zip(names, unique_topics):
-#         if topic in topics and topic != -1:
-#             selection = df.loc[df.topic == topic, :]
-#             selection["text"] = ""
-
-#             selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), name]
-
-#             fig.add_trace(
-#                 go.Scattergl(
-#                     x=selection.x,
-#                     y=selection.y,
-#                     hovertext=selection.doc,
-#                     hoverinfo="text",
-#                     text=selection.text,
-#                     mode='markers+text',
-#                     name=name,
-#                     textfont=dict(
-#                         size=12,
-#                     ),
-#                     marker=dict(size=5, opacity=0.5)
-#                 )
-#             )
-
-#     # Add grid in a 'plus' shape
-#     x_range = (df.x.min() - abs((df.x.min()) * .15), df.x.max() + abs((df.x.max()) * .15))
-#     y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
-#     fig.add_shape(type="line",
-#                   x0=sum(x_range) / 2, y0=y_range[0], x1=sum(x_range) / 2, y1=y_range[1],
-#                   line=dict(color="#CFD8DC", width=2))
-#     fig.add_shape(type="line",
-#                   x0=x_range[0], y0=sum(y_range) / 2, x1=x_range[1], y1=sum(y_range) / 2,
-#                   line=dict(color="#9E9E9E", width=2))
-#     fig.add_annotation(x=x_range[0], y=sum(y_range) / 2, text="D1", showarrow=False, yshift=10)
-#     fig.add_annotation(y=y_range[1], x=sum(x_range) / 2, text="D2", showarrow=False, xshift=10)
-
-#     # Stylize layout
-#     fig.update_layout(
-#         template="simple_white",
-#         title={
-#             'text': f"{title}",
-#             'x': 0.5,
-#             'xanchor': 'center',
-#             'yanchor': 'top',
-#             'font': dict(
-#                 size=22,
-#                 color="Black")
-#         },
-#         width=width,
-#         height=height
-#     )
-
-#     fig.update_xaxes(visible=False)
-#     fig.update_yaxes(visible=False)
-#     return fig
 
 #LDA___________________________________________________________________________________________________________________________________
 def lda_visualize_barchart(topic_model,
@@ -826,6 +821,8 @@ def nmf_lda_visualize_documents(
         # Extract the words and their scores
         words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
         names.append(f"{i}_" + "_".join(words))
+        
+    topic_labels = {name.split('_')[0]: name for name in names}
 
     # Visualize
     fig = go.Figure()
@@ -903,4 +900,4 @@ def nmf_lda_visualize_documents(
 
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
-    return fig
+    return fig, topic_labels

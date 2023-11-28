@@ -51,7 +51,7 @@ else:
     raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
 
 #_____________________________________________________________________________________________
-def BERT_topic(df, text_column, dir_out, lang):
+def BERT_topic(df, text_column, dir_out, lang, timestamps=None):
 
     """
     Training pipeline for BERTopic
@@ -59,7 +59,8 @@ def BERT_topic(df, text_column, dir_out, lang):
         df: pd.DataFrame with corpus,
         text_column: text column name (str),
         dir_out: output dir,
-        lang: language
+        lang: language,
+        timestamps: if provided, visualize topics over time
     Returns:
         Topic document matrix
         Keywords per topic dataframe
@@ -140,7 +141,7 @@ def BERT_topic(df, text_column, dir_out, lang):
 
     # Generate visualizations
     print("Generating visualizations...")
-    generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings)
+    generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings, timestamps)
     
     return topic_doc_matrix, keyword_df, topic_term_matrix
 
@@ -162,7 +163,7 @@ def coherence(topics, texts):
 
     return coherence_score
 
-def LDA_model(df, text_column_name, dir_out):
+def LDA_model(df, text_column_name, dir_out, timestamps=None):
 
     """
     Training pipeline for LDA model.
@@ -233,8 +234,20 @@ def LDA_model(df, text_column_name, dir_out):
     keyword_barcharts.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     # document topic plot
-    document_topic_fig = nmf_lda_visualize_documents(lda, vectorizer, df[text_column_name].to_numpy(), X, annotations)
+    document_topic_fig, topic_labels = nmf_lda_visualize_documents(lda, vectorizer, df[text_column_name].to_numpy(), X, annotations)
     document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
+
+    #compute topics over time
+    if timestamps:
+        documents = pd.DataFrame(data={
+            'Document': texts,
+            'Timestamps': timestamps,
+            'Topic': annotations,
+        })
+        topics_over_time = get_topics_over_time(documents, topic_labels)
+        topics_over_time = pd.DataFrame(topics_over_time, columns=["Topic", "Words", "Frequency", "Timestamp"])
+        time_fig = visualize_topics_over_time(annotations, topic_labels, topics_over_time)
+        time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
 
     return topic_doc_matrix, keyword_df, components_df
 
@@ -297,7 +310,7 @@ def load_data(in_dir, input_format, delimiter):
     
     return df
 
-def NMF_model(df, text_column_name, dir_out):
+def NMF_model(df, text_column_name, dir_out, timestamps=None):
 
     """
     Training pipeline for NMF model.
@@ -363,8 +376,20 @@ def NMF_model(df, text_column_name, dir_out):
     keywords_fig.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     # document topic plot
-    document_topic_fig = nmf_lda_visualize_documents(nmf, vectorizer, df[text_column_name].to_numpy(), X, annotations)
+    document_topic_fig, topic_labels = nmf_lda_visualize_documents(nmf, vectorizer, df[text_column_name].to_numpy(), X, annotations)
     document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
+
+    # compute topics over time
+    if timestamps:
+        documents = pd.DataFrame(data={
+            'Document': texts,
+            'Timestamps': timestamps,
+            'Topic': annotations,
+        })
+        topics_over_time = get_topics_over_time(documents, topic_labels)
+        topics_over_time = pd.DataFrame(topics_over_time, columns=["Topic", "Words", "Frequency", "Timestamp"])
+        time_fig = visualize_topics_over_time(annotations, topic_labels, topics_over_time)
+        time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
 
     return topic_doc_matrix, keyword_df, components_df
 
@@ -475,7 +500,7 @@ def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
             n += 1
         return result
 
-def top_2_vec(df, text_column, dir_out):
+def top_2_vec(df, text_column, dir_out, timestamps=None):
 
     """
     Training pipeline for Top2Vec. Also creates visualizations.
@@ -599,11 +624,23 @@ def top_2_vec(df, text_column, dir_out):
 
     #2D document plot
     docs = df[text_column].tolist()
-    documents_fig = top2vec_visualize_documents(model, annotations, reduced, docs)
+    documents_fig, topic_labels = top2vec_visualize_documents(model, annotations, reduced, docs)
     documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     #hierarchy
     hierarchy_fig = top2vec_visualize_hierarchy(model, annotations, reduced)
     hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
+
+    #topics over time
+    if timestamps:
+        documents = pd.DataFrame(data={
+            'Document': docs,
+            'Timestamps': timestamps,
+            'Topic': annotations,
+        })
+        topics_over_time = get_topics_over_time(documents, topic_labels)
+        topics_over_time = pd.DataFrame(topics_over_time, columns=["Topic", "Words", "Frequency", "Timestamp"])
+        time_fig = visualize_topics_over_time(annotations, topic_labels, topics_over_time)
+        time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
     
     return topic_doc_matrix, keyword_df, topic_term_matrix

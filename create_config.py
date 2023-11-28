@@ -7,6 +7,7 @@ config_object["INPUT_CONFIG"] = {
     "input": './demo/demo_data.csv', #full path to input data
     "input_format": 'csv', #'csv' or 'zip'
     "text_column": 'text', #only relevant if input_format='csv'
+    "timestamp_column": '', #only relevent if input_format='csv', computes topics over time if provided
     "delimiter": ',' #only relevant if input_format='csv'
 }
 

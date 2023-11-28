@@ -32,14 +32,23 @@ def main():
 
 #LOAD_DATA_____________________________________________________________________________________
     print("Loading data...")
+
     in_dir = input_config['input']
     input_format = input_config['input_format']
     delimiter = input_config['delimiter']
+
     df = load_data(in_dir, input_format, delimiter)
+
     text_column = input_config['text_column']
     if not text_column.strip():
         text_column = 'text'
     df[text_column] = df[text_column].apply(lambda x: str(x))
+
+    # compute topics over time?
+    if input_config['timestamp_column'].strip() and input_format == 'csv':
+        timestamps = df[input_config['timestamp_column'].strip()].tolist()
+    else:
+        timestamps = None
             
 #PREPROCESSING_________________________________________________________________________________
     print('Preprocessing data...')
@@ -52,7 +61,7 @@ def main():
         remove_custom_stopwords = processing_config['remove_custom_stopwords'].strip()
         remove_punct = int(processing_config['remove_punct'])
         lowercase = int(processing_config['lowercase'])
-        lang = processing_config['lang']
+        lang = processing_config['lang'].lower()
 
         #load relevant SpaCy model
         if lang =='dutch':
@@ -64,7 +73,7 @@ def main():
         elif lang == 'german':
             nlp = spacy.load('de_core_news_sm')
         else:
-            raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'dutch', 'english', 'french', 'german'.")
+            raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'Dutch', 'English', 'French', 'German'.")
 
         print("    Tokenize:", bool(tokenize))
         print("    Lemmatize:", bool(lemmatize))
@@ -102,16 +111,16 @@ def main():
 
 #FIT_MODEL_____________________________________________________________________________________
     if input_config['algorithm'] == 'BERTopic':
-        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out, lang)
+        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out, lang, timestamps)
     
     elif input_config['algorithm'] == 'LDA':
-        topic_doc_matrix, keyword_df, topic_term_matrix = LDA_model(df, text_column, dir_out)
+        topic_doc_matrix, keyword_df, topic_term_matrix = LDA_model(df, text_column, dir_out, timestamps)
     
     elif input_config['algorithm'] == 'NMF':
-        topic_doc_matrix, keyword_df, topic_term_matrix = NMF_model(df, text_column, dir_out)
+        topic_doc_matrix, keyword_df, topic_term_matrix = NMF_model(df, text_column, dir_out, timestamps)
     
     elif input_config['algorithm'] == 'Top2Vec':
-        topic_doc_matrix, keyword_df, topic_term_matrix = top_2_vec(df, text_column, dir_out)
+        topic_doc_matrix, keyword_df, topic_term_matrix = top_2_vec(df, text_column, dir_out, timestamps)
 
     keywords = keyword_df.keywords.tolist()
 
@@ -153,7 +162,6 @@ def main():
     topic_doc_matrix = pd.concat([idx_column, label_column], axis=1)
     topic_doc_matrix.to_csv(os.path.join(dir_out, 'annotations.csv'), index=False)
 
-    #VISUALIZATION (to do)
     print('Done!')
 #______________________________________________________________________________________________
 if __name__ == "__main__":
