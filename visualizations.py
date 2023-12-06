@@ -106,6 +106,7 @@ def get_topics_over_time(documents, topic_names):
     # For each unique timestamp, create topic representations
     topics_over_time = []
     timestamps = documents.Timestamps.tolist()
+    topic_names = {str(k): v for k,v in topic_names.items()}
 
     for timestamp in timestamps:
 
@@ -117,7 +118,7 @@ def get_topics_over_time(documents, topic_names):
         topic_frequency = {int(k): v for k,v in topic_frequency.items()}
 
         # Fill dataframe with results
-        topics_at_timestamp = [(int(topic), ", ".join(topic_names[topic].split('_')[1:]), topic_frequency[int(topic)], timestamp) for topic in topic_names]
+        topics_at_timestamp = [(int(topic), ", ".join(topic_names[str(topic)].split('_')[1:]), topic_frequency[int(topic)], timestamp) for topic in topic_frequency.keys()]
         topics_over_time.extend(topics_at_timestamp)
     return topics_over_time
 
