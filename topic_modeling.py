@@ -65,13 +65,13 @@ def main():
 
         #load relevant SpaCy model
         if lang =='dutch':
-            nlp = spacy.load("nl_core_news_sm")
+            nlp = spacy.load("nl_core_news_lg")
         elif lang == 'english':
-            nlp = spacy.load("en_core_web_sm")
+            nlp = spacy.load("en_core_web_lg")
         elif lang == 'french':
-            nlp = spacy.load('fr_core_news_sm')
+            nlp = spacy.load('fr_core_news_lg')
         elif lang == 'german':
-            nlp = spacy.load('de_core_news_sm')
+            nlp = spacy.load('de_core_news_lg')
         else:
             raise ValueError(f"'{lang}' is not a valid language, please use one of the following languages: 'Dutch', 'English', 'French', 'German'.")
 
