@@ -43,7 +43,7 @@ And specify which preprocessing steps to apply to your data:
 - language (relevant for tokenization/lemmatization, and removal of NLTK stopwords)
 
 #### Run the pipeline
-Create the config file by running ```python create_config.py``` and start the pipeline with ```python -u topic_modeling.py```.
+Create the config file by running ```python create_config.py``` and start the pipeline with ```python topic_modeling.py```.
 
 #### Output
 ```evaluation.csv``` contains diversity and coherence scores
@@ -58,12 +58,11 @@ Create the config file by running ```python create_config.py``` and start the pi
 
 ### User Guidelines
 #### Algorithm selection
-The user has the option to choose between two types of topic modeling architectures: neural (Top2Vec/BERTopic) and classical (LDA/NMF). Generally, it is recommended to use the neural algorithms, as they tend to produce better results. Since Top2Vec is the fastest of the two neural architectures, it is presented as the default option. The guidelines below should give you an intuition of when to use which model:
-- Top2Vec*: State-of-the-art, high-speed algorithm (default option). Text representations can be based on a pre-trained transformer, or new embeddings can be generated from the input corpus (by setting base model to "Doc2Vec" in the config file). The latter can be useful if the corpus has a substantial size and when it is expected that the type of language used in the corpus is not represented in the pre-trained language models that Top2Vec features: 'universal-sentence-encoder', 'universal-sentence-encoder-multilingual', 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', and 'paraphrase-multilingual-MiniLM-L12-v2'. 
-- BERTopic*: State-of-the-art algorithm that can be used with any model on the HuggingFace transformers hub: https://huggingface.co/models. This is useful when you want to use a model that is trained on that is the same as or similar to your corpus. If not specified, the default model that is used is "all-MiniLM-L6-v2".
+- Top2Vec*: State-of-the-art neural algorithm (default option). Text representations can be based on a pre-trained transformer, or new embeddings can be generated from the input corpus (by setting base model to "Doc2Vec" in the config file). The latter can be useful if the corpus has a substantial size and when it is expected that the type of language used in the corpus is not represented in the pre-trained language models that Top2Vec features: 'universal-sentence-encoder', 'universal-sentence-encoder-multilingual', 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', and 'paraphrase-multilingual-MiniLM-L12-v2'. 
+- BERTopic*: State-of-the-art neural algorithm that can be used with any pre-trained transformer model on the HuggingFace hub: https://huggingface.co/models. This is useful when you want to use a model that is trained on the same (or similar) data as your corpus. If not specified, the default model that is used is "all-MiniLM-L6-v2".
 - NMF/LDA: Generally perform worse than Top2Vec and BERTopic, but worth investigating when working with a large corpus (+10 000 items) that contains texts that are very long or when it is expected that the type of language in the corpus is not well-represented in the pre-trained models that the neural algorithms are based on, such as historical texts.
 
-*The selection of the base model should, a.o. depend on the language of your data. If no model is available for that language, or if your corpus contains multiple languages, it is recommended to use a multi-lingual model.
+* The selection of the base model should, a.o. depend on the language of your data. If no model is available for that language, or if your corpus contains texts written in multiple languages, it is recommended to use a multilingual model.
 
 #### Preprocessing
 When using the classical machine learning algorithms (NMF/LDA), it is recommended to apply all preprocessing steps provided in the pipeline (tokenization, lemmatization, lowercasing, and removing stopwords and punctuation). For the neural models, it is not required, since they rely on more sophisticated methods, but experimenting with different preprocessing steps could still result in improvements.
