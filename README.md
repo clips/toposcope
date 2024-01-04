@@ -36,7 +36,7 @@ And specify which preprocessing steps to apply to your data:
 - tokenize text
 - lemmatize text
 - remove NLTK stopwords
-- remove custom stopwords
+- remove custom stopwords (specify file path to .txt containing one stopword per line)
 - remove punctuation
 - lowercase text
 - use ngrams
