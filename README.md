@@ -55,3 +55,13 @@ Create the config file by running ```python create_config.py``` and start the pi
 ```topic_term_matrix.csv``` matrix containing the weights of all tokens with respect to the topics
 
 ```visualizations``` folder containing html visualizations of the topic modeling results
+
+### User Guidelines
+#### Algorithm selection
+The user has the option to choose between two types of topic modeling architectures: neural (Top2Vec/BERTopic) and classical (LDA/NMF). Generally, it is recommended to use the neural algorithms, as they tend to produce better results. Since Top2Vec is the fastest of the two neural architectures, it is presented as the default option. 
+
+#### Preprocessing
+When using the classical machine learning algorithms (NMF/LDA), it is recommended to apply all preprocessing steps provided in the pipeline (tokenization, lemmatization, lowercasing, and removing stopwords and punctuation). For the neural models, it is not required, since they rely on more sophisticated methods, but experimenting with different preprocessing steps could still result in improvements.
+
+#### Model parameter tuning and evaluation of the results
+Which model and hyperparameters are optimal depends on the data that is used. Therefore, optimization experiments are necessary to find the best performing model. To evaluate the results of the topic modeling algorithm, it is important to investigate both the quantitative results - the diversity and coherence scores - but also the qualitative results by looking at the individual topic predictions, visualizations, and the most important keywords per topic. 
