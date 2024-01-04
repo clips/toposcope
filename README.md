@@ -1,7 +1,5 @@
 ## Documentation
 
-### Introduction
-
 This repository contains code for the topic modeling pipeline for the CLARIAH-VL digital text analysis dashboard and pipeline (DTADP). 
 
 ### Installation
