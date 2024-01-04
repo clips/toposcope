@@ -27,7 +27,7 @@ config_object["BERTOPIC_CONFIG"] = {
 }
 
 config_object["TOP2VEC_CONFIG"] = {
-    "model": 'universal-sentence-encoder', # Any of the following: "doc2vec", "universal-sentence-encoder", "all-MiniLM-L6-v2", "distiluse-base-multilingual-cased", "paraphrase-multilingual-MiniLM-L12-v2" only use "universal-sentence-encoder" for English data
+    "model": 'universal-sentence-encoder', # Any of the following: "doc2vec", "universal-sentence-encoder", "all-MiniLM-L6-v2", "distiluse-base-multilingual-cased", "paraphrase-multilingual-MiniLM-L12-v2"
     "topic_reduction": 20, # 0: no reduction, else: max. number of topics allowed
     "min_topic_size": 2, # minimum number of documents per topic, must be 1<
     "preprocess": 1, # 0 (no) or 1 (yes)
