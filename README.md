@@ -6,21 +6,19 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 
 ### Installation
 
-Create and activate a conda python 3.9 environment: 
-
-```conda create -n {name here} python=3.9.18``` -> ```conda activate {env_name}```
-
-Clone the repository: ```git clone https://github.com/LemmensJens/CLARIAH-topic.git```
-
-Navigate to the repository ```cd CLARIAH-topic``` and install the requirements with ```pip3 install -r requirements.txt```. 
-
-Finally, download NLTK's stopwords with ```python -m nltk.downloader stopwords```. 
+1. Create a new conda environment: ```conda create -n {name here} python=3.9.18```
+2. Clone the repository: ```git clone https://github.com/LemmensJens/CLARIAH-topic.git```
+3. Install the requirements: ```pip3 install -r requirements.txt```
+4. Download NLTK's stopwords: ```python -m nltk.downloader stopwords```
 
 ### Quick start
-Set up the configuration file, run ```python create_config.py```, and start the pipeline by calling ```python -u topic_modeling.py```.
+1. Set up the configuration file
+2. Run the pipeline by calling ```python -u topic_modeling.py```
 
 ### Demo
-For a demo, run ```python get_demo_data.py``` to retrieve the 20 NewsGroups dataset, initialize the config file with the default settings by calling ```python create_config.py```, and run ```python -u topic_modeling.py```.
+1. Run ```python get_demo_data.py``` to retrieve the 20 NewsGroups dataset.
+2. Initialize the config file with the default settings by calling ```python create_config.py```
+3. Run the pipeline: ```python -u topic_modeling.py```
 
 ### Pipeline usage and overview
 
