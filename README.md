@@ -18,7 +18,9 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 2. Initialize the config file with the default settings by calling ```python create_config.py```
 3. Run the pipeline: ```python topic_modeling.py```
 
-### Pipeline usage and overview
+### Pipeline overview
+
+![Alt text](clariah_topic_pipeline.png)
 
 #### Set up config file
 In ```create_config.py```, specify the following:
