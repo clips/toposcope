@@ -453,32 +453,23 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_nltk_stopwords, remo
 
     return text
 
-def calculate_proportion_of_unique_words(topic, topk):
-    unique_words = set(topic[:topk])
-    return len(unique_words) / topk
-
 def compute_diversity(topics, topk=10):
     """
-    Compute the proportion of unique words. Used as diversity score for evaluation. 
-    Arguments:
-        topics: a list of lists of words
-        topk: top k words on which the topic diversity will be computed
-    Returns:
-        Proportion of unique words (float)
+    compute the proportion of unique words
+
+    Parameters
+    ----------
+    topics: a list of lists of words
+    topk: top k words on which the topic diversity will be computed
     """
     if topk > len(topics[0]):
         raise Exception('Words in topics are less than '+str(topk))
     else:
-        diversity_scores = []
-    
+        unique_words = set()
         for topic in topics:
-            puw = calculate_proportion_of_unique_words(topic, topk)
-            diversity_scores.append(puw)
-        
-        # Calculate the average diversity score
-        average_diversity_score = sum(diversity_scores) / len(diversity_scores)
-        
-        return average_diversity_score
+            unique_words = unique_words.union(set(topic[:topk]))
+        puw = len(unique_words) / (topk * len(topics))
+        return puw
 
 
 def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
