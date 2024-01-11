@@ -159,6 +159,7 @@ def main():
     idx_column = topic_doc_matrix['idx']
     topic_doc_matrix = topic_doc_matrix.drop(columns=['idx'])  
     label_column = topic_doc_matrix.apply(lambda row: row.idxmax(), axis=1)
+    label_column.name = 'main topic'
     topic_doc_matrix = pd.concat([idx_column, label_column], axis=1)
     topic_doc_matrix.to_csv(os.path.join(dir_out, 'annotations.csv'), index=False)
 
