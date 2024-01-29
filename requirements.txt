@@ -1,8 +1,6 @@
 top2vec[indexing]==1.0.34
-top2vec[sentence_encoders]
-top2vec[sentence_transformers]
 sentence_transformers==2.2.2
-tensorflow==2.15.0
+tensorflow[and_cuda]==2.15.0.post1
 tensorflow_hub==0.15.0
 tensorflow_text==2.15.0
 scikit-learn==1.2.0
