@@ -61,12 +61,12 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, timestamp
     """
 
     # topic hierarchy
-    if processing_config['topic_reduction'].strip():
-        hierarchical_topics = model.hierarchical_topics(docs)
-        hierarchy_fig = model.visualize_hierarchy(hierarchical_topics=hierarchical_topics)
-    else:
-        hierarchy_fig = model.visualize_hierarchy()
-    hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
+    # if processing_config['topic_reduction'].strip():
+    #     hierarchical_topics = model.hierarchical_topics(docs)
+    #     hierarchy_fig = model.visualize_hierarchy(hierarchical_topics=hierarchical_topics)
+    # else:
+    #     hierarchy_fig = model.visualize_hierarchy()
+    # hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
 
     # most important keywords per topic
     keyword_fig = model.visualize_barchart(topics=model.get_topics(), width=400)
@@ -638,7 +638,7 @@ def nmf_visualize_barchart(topic_model,
         top_words = sorted(topic_word_scores, key=lambda x: x[1], reverse=True)[:n_words]
 
         # Extract the words and their scores
-        words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
+        words = [vectorizer.get_feature_names_out()[word_idx] for word_idx, _ in top_words][::-1]
         scores = [score for _, score in top_words][::-1]
 
         fig.add_trace(
@@ -731,7 +731,7 @@ def lda_visualize_barchart(topic_model,
         top_words = sorted(topic_word_scores, key=lambda x: x[1], reverse=True)[:n_words]
 
         # Extract the words and their scores
-        words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
+        words = [vectorizer.get_feature_names_out()[word_idx] for word_idx, _ in top_words][::-1]
         scores = [score for _, score in top_words][::-1]
 
         fig.add_trace(
@@ -820,7 +820,7 @@ def nmf_lda_visualize_documents(
         top_words = sorted(topic_word_scores, key=lambda x: x[1], reverse=True)[:3]
 
         # Extract the words and their scores
-        words = [vectorizer.get_feature_names()[word_idx] for word_idx, _ in top_words][::-1]
+        words = [vectorizer.get_feature_names_out()[word_idx] for word_idx, _ in top_words][::-1]
         names.append(f"{i}_" + "_".join(words))
         
     topic_labels = {name.split('_')[0]: name for name in names}

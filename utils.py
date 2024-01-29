@@ -133,7 +133,7 @@ def BERT_topic(df, text_column, dir_out, lang, timestamps=None):
     topic_doc_matrix.insert(loc=0, column='idx', value=idx)
 
     #topic-term matrix
-    vocab = topic_model.vectorizer_model.get_feature_names()
+    vocab = topic_model.vectorizer_model.get_feature_names_out()
     topic_term_weights = topic_model.c_tf_idf_.toarray()
     topic_term_matrix = pd.DataFrame(topic_term_weights)
     topic_term_matrix.index = topic_idx
@@ -196,7 +196,7 @@ def LDA_model(df, text_column_name, dir_out, timestamps=None):
 
     #calculate probabilities per doc/topic
     scores = lda.transform(X)
-    components_df = pd.DataFrame(lda.components_, columns=vectorizer.get_feature_names())
+    components_df = pd.DataFrame(lda.components_, columns=vectorizer.get_feature_names_out())
 
     #get keywords per topic
     keywords = []
@@ -337,7 +337,7 @@ def NMF_model(df, text_column_name, dir_out, timestamps=None):
     nmf.fit(X)
 
     scores = nmf.transform(X)
-    components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names())
+    components_df = pd.DataFrame(nmf.components_, columns=vectorizer.get_feature_names_out())
 
     #get keywords per topic
     keywords = []
@@ -619,8 +619,8 @@ def top_2_vec(df, text_column, dir_out, timestamps=None):
     documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     #hierarchy
-    hierarchy_fig = top2vec_visualize_hierarchy(model, annotations, reduced)
-    hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
+    # hierarchy_fig = top2vec_visualize_hierarchy(model, annotations, reduced)
+    # hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
 
     #topics over time
     if timestamps:

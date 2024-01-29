@@ -18,6 +18,9 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 2. Initialize the config file with the default settings by calling ```python create_config.py```
 3. Run the pipeline: ```python topic_modeling.py```
 
+### User Interface
+To run the pipeline in a Gradio User Interface, run python app.py to host the UI locally.
+
 ### Pipeline overview
 
 ![Alt text](clariah_topic_pipeline.png)
