@@ -110,17 +110,32 @@ def main():
     os.mkdir(os.path.join(dir_out, 'visualizations'))
 
 #FIT_MODEL_____________________________________________________________________________________
-    if input_config['algorithm'] == 'BERTopic':
-        topic_doc_matrix, keyword_df, topic_term_matrix = BERT_topic(df, text_column, dir_out, lang, timestamps)
+    if algorithm == 'BERTopic':
+        model = preprocessing_config['model']
+        lang = preprocessing_config['lang']
+        upper_ngram_range = preprocessing_config['upper_ngram_range']
+        min_topic_size = preprocessing_config['min_topic_size']
+        n_topics = preprocessing_config['topic_reduction']
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = BERT_topic(df, model, text_column, dir_out, lang, upper_ngram_range, min_topic_size, n_topics, input_format, timestamps)
     
-    elif input_config['algorithm'] == 'LDA':
-        topic_doc_matrix, keyword_df, topic_term_matrix = LDA_model(df, text_column, dir_out, timestamps)
+    elif algorithm == 'LDA':
+        lang = preprocessing_config['lang']
+        upper_ngram_range = preprocessing_config['upper_ngram_range']
+        n_topics = preprocessing_config['n_components']
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = LDA_model(df, 'text', dir_out, upper_ngram_range, n_topics, input_format, timestamps)
     
-    elif input_config['algorithm'] == 'NMF':
-        topic_doc_matrix, keyword_df, topic_term_matrix = NMF_model(df, text_column, dir_out, timestamps)
+    elif algorithm == 'NMF':
+        lang = preprocessing_config['lang']
+        upper_ngram_range = preprocessing_config['upper_ngram_range']
+        n_topics = preprocessing_config['n_components']
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = NMF_model(df, 'text', dir_out, upper_ngram_range, n_topics, input_format, timestamps)
     
-    elif input_config['algorithm'] == 'Top2Vec':
-        topic_doc_matrix, keyword_df, topic_term_matrix = top_2_vec(df, text_column, dir_out, timestamps)
+    elif algorithm == 'Top2Vec':
+        model = preprocessing_config['model']
+        lang = preprocessing_config['lang']
+        upper_ngram_range = preprocessing_config['upper_ngram_range']
+        n_topics = preprocessing_config['topic_reduction']
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = top_2_vec(df, 'text', model, dir_out, n_topics, input_format, upper_ngram_range, timestamps)
 
     keywords = keyword_df.keywords.tolist()
 

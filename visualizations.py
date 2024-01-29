@@ -1,6 +1,5 @@
 #system
 import random as rd
-from configparser import ConfigParser
 import itertools, os
 import numpy as np
 
@@ -20,7 +19,7 @@ import plotly.figure_factory as ff
 import plotly.express as px
 from scipy.cluster import hierarchy as sch
 from sklearn.metrics.pairwise import cosine_similarity
-from umap import UMAP
+from umap import umap_ as UMAP
 from scipy.sparse import csr_matrix
 
 """
@@ -29,26 +28,8 @@ https://github.com/MaartenGr/BERTopic/tree/62e97ddea6cdcf9e4da25f9eaed478b22a9f9
 The functions are adapted to be compatible with other topic models.
 """
 
-#load SpaCy and config_______________________________________________________________________
-config_object = ConfigParser()
-config_object.read('config.ini')
-input_config = config_object["INPUT_CONFIG"] 
-output_config = config_object["OUTPUT_CONFIG"]
-
-if input_config['algorithm'] =='LDA':
-    processing_config = config_object["LDA_CONFIG"]
-elif input_config['algorithm'] =='NMF':
-    processing_config = config_object["NMF_CONFIG"]
-elif input_config['algorithm'] =='BERTopic':
-    processing_config = config_object["BERTOPIC_CONFIG"]
-elif input_config['algorithm'] =='Top2Vec':
-    processing_config = config_object["TOP2VEC_CONFIG"]
-else:
-    raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
-
-
 #BERTOPIC________________________________________________________________________________________________________________________________
-def generate_bertopic_visualizations(model, dir_out, docs, embeddings, timestamps=None):
+def generate_bertopic_visualizations(model, dir_out, docs, embeddings, topic_reduction, timestamps=None):
     """
     Generate visualizations for BERTopic
     Arguments:
@@ -61,7 +42,7 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, timestamp
     """
 
     # topic hierarchy
-    # if processing_config['topic_reduction'].strip():
+    # if topic_reduction:
     #     hierarchical_topics = model.hierarchical_topics(docs)
     #     hierarchy_fig = model.visualize_hierarchy(hierarchical_topics=hierarchical_topics)
     # else:
@@ -74,7 +55,7 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, timestamp
 
     # documents and topics
     reduced_embeddings = UMAP(metric='cosine', random_state=42).fit_transform(embeddings)
-    if processing_config['topic_reduction'].strip():
+    if topic_reduction:
         hierarchical_topics = model.hierarchical_topics(docs)
         document_fig = model.visualize_hierarchical_documents(docs, hierarchical_topics, reduced_embeddings=reduced_embeddings)
     else:

@@ -1,7 +1,6 @@
 #system
 import os, zipfile
 import random as rd
-from configparser import ConfigParser
 
 #preprocessing
 import string
@@ -20,8 +19,8 @@ from sklearn.decomposition import LatentDirichletAllocation, NMF
 from top2vec import Top2Vec
 
 #BERTopic
-from bertopic import BERTopic
-from umap import UMAP
+#from bertopic import BERTopic
+from umap import umap_ as UMAP
 from sentence_transformers import SentenceTransformer
 from transformers.pipelines import pipeline
 
@@ -32,26 +31,8 @@ import plotly.graph_objects as go
 from visualizations import *
 
 rd.seed(42)
-
-#load SpaCy and config_______________________________________________________________________
-config_object = ConfigParser()
-config_object.read('config.ini')
-input_config = config_object["INPUT_CONFIG"] 
-output_config = config_object["OUTPUT_CONFIG"]
-
-if input_config['algorithm'] =='LDA':
-    processing_config = config_object["LDA_CONFIG"]
-elif input_config['algorithm'] =='NMF':
-    processing_config = config_object["NMF_CONFIG"]
-elif input_config['algorithm'] =='BERTopic':
-    processing_config = config_object["BERTOPIC_CONFIG"]
-elif input_config['algorithm'] =='Top2Vec':
-    processing_config = config_object["TOP2VEC_CONFIG"]
-else:
-    raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
-
 #_____________________________________________________________________________________________
-def BERT_topic(df, text_column, dir_out, lang, timestamps=None):
+def BERT_topic(df, base_model, text_column, dir_out, lang, upper_ngram_range, min_topic_size, topic_reduction, input_format, timestamps=None):
 
     """
     Training pipeline for BERTopic
@@ -68,9 +49,7 @@ def BERT_topic(df, text_column, dir_out, lang, timestamps=None):
     """
 
     # Load embedding model
-    if processing_config['model'].strip():
-        base_model = processing_config['model'].strip() # custom model
-    else:
+    if not base_model:
         if lang == 'english':
             base_model = 'all-MiniLM-L6-v2' # default model for English
         else:
@@ -91,12 +70,12 @@ def BERT_topic(df, text_column, dir_out, lang, timestamps=None):
 
     #instantiate topic model object
     topic_model = BERTopic(
-        n_gram_range=(1, int(processing_config['upper_ngram_range'])),
-        language=processing_config['lang'],
+        n_gram_range=(1, int(upper_ngram_range)),
+        language=lang,
         top_n_words=10,
-        min_topic_size=int(processing_config['min_topic_size']),
+        min_topic_size=int(min_topic_size),
         embedding_model=sentence_model, 
-        nr_topics=int(processing_config['topic_reduction']),
+        nr_topics=int(topic_reduction),
         calculate_probabilities=True,
         umap_model=umap,
     )
@@ -124,7 +103,7 @@ def BERT_topic(df, text_column, dir_out, lang, timestamps=None):
         'keywords': keywords,
     })
     
-    if input_config['input_format'] == 'zip':
+    if input_format == 'zip':
         idx = df['filename'].tolist()
     else:
         idx = list(df.index)
@@ -141,7 +120,7 @@ def BERT_topic(df, text_column, dir_out, lang, timestamps=None):
 
     # Generate visualizations
     print("Generating visualizations...")
-    generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings, timestamps)
+    generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings, topic_reduction, timestamps)
     
     return topic_doc_matrix, keyword_df, topic_term_matrix
 
@@ -163,7 +142,7 @@ def coherence(topics, texts):
 
     return coherence_score
 
-def LDA_model(df, text_column_name, dir_out, timestamps=None):
+def LDA_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_format, timestamps=None):
 
     """
     Training pipeline for LDA model.
@@ -180,12 +159,12 @@ def LDA_model(df, text_column_name, dir_out, timestamps=None):
     #vectorize text
     print('Vectorizing texts...')
     texts = df[text_column_name].to_numpy()
-    vectorizer = CountVectorizer(lowercase=False, min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    vectorizer = CountVectorizer(lowercase=False, min_df=5, ngram_range=(1, int(upper_ngram_range)))
     X = vectorizer.fit_transform(texts)
 
     #initialize and fit model
     lda = LatentDirichletAllocation(
-    	n_components=int(processing_config['n_components']),
+    	n_components=int(topic_reduction),
         learning_method='online',
 		random_state=42,
 		max_iter=100,
@@ -207,7 +186,7 @@ def LDA_model(df, text_column_name, dir_out, timestamps=None):
         keywords.append(tmp.nlargest(10).index.tolist())
 
     #get text indices
-    if input_config['input_format'] == 'zip':
+    if input_format == 'zip':
         idx = df['filename'].tolist()
     else:
         idx = list(df.index)
@@ -310,7 +289,7 @@ def load_data(in_dir, input_format, delimiter):
     
     return df
 
-def NMF_model(df, text_column_name, dir_out, timestamps=None):
+def NMF_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_format, timestamps=None):
 
     """
     Training pipeline for NMF model.
@@ -324,11 +303,11 @@ def NMF_model(df, text_column_name, dir_out, timestamps=None):
     """
 
     texts = df[text_column_name].to_numpy()
-    vectorizer = TfidfVectorizer(lowercase=False, min_df=5, ngram_range=(1, int(processing_config['upper_ngram_range'])))
+    vectorizer = TfidfVectorizer(lowercase=False, min_df=5, ngram_range=(1, upper_ngram_range))
     X = vectorizer.fit_transform(texts)
 
     nmf = NMF(
-        n_components=int(processing_config['n_components']), 
+        n_components=int(n_components), 
         init='random', 
         random_state=42
     )
@@ -347,7 +326,7 @@ def NMF_model(df, text_column_name, dir_out, timestamps=None):
         keywords.append(tmp.nlargest(10).index.tolist())
 
     #get text indices
-    if input_config['input_format'] == 'zip':
+    if input_format == 'zip':
         idx = df['filename'].tolist()
     else:
         idx = df.index.tolist()
@@ -472,7 +451,7 @@ def compute_diversity(topics, topk=10):
         return puw
 
 
-def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
+def tokenizer(text, upper_ngram_range):
         
         """
         Tokenizer function to use later in case ngrams are requested.
@@ -491,7 +470,7 @@ def tokenizer(text, upper_n=int(processing_config['upper_ngram_range'])):
             n += 1
         return result
 
-def top_2_vec(df, text_column, dir_out, timestamps=None):
+def top_2_vec(df, text_column, base_model, dir_out, topic_reduction, input_format, timestamps=None):
 
     """
     Training pipeline for Top2Vec. Also creates visualizations.
@@ -514,11 +493,11 @@ def top_2_vec(df, text_column, dir_out, timestamps=None):
     }
 
     #get base model
-    if processing_config['model'].strip():
-        embedding_model = processing_config['model']
+    if base_model.strip():
+        embedding_model = base_model.strip()
         if embedding_model not in default_models:
             raise KeyError(
-                """embedding_model must be one of: 'doc2vec', 'universal-sentence-encoder', 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', 'paraphrase-multilingual-MiniLM-L12-v2'"""
+                """embedding_model must be one of: 'doc2vec', 'universal-sentence-encoder', 'universal-sentence-encoder-multilingual' 'distiluse-base-multilingual-cased', 'all-MiniLM-L6-v2', 'paraphrase-multilingual-MiniLM-L12-v2'"""
                 )
     else:
         embedding_model = ''
@@ -543,7 +522,7 @@ def top_2_vec(df, text_column, dir_out, timestamps=None):
 
     #HIERARCHICAL_TOPIC_REDUCTION__________________________________________________________________
     reduced = False
-    max_n_topics = int(processing_config['topic_reduction']) 
+    max_n_topics = int(topic_reduction)
     if max_n_topics and max_n_topics < model.get_num_topics():
         model.hierarchical_topic_reduction(num_topics=max_n_topics)
         reduced = True
@@ -570,14 +549,14 @@ def top_2_vec(df, text_column, dir_out, timestamps=None):
 
     #RETURN_DOCUMENT_SCORES_PER_TOPIC______________________________________________________________
     #get text indices
-    if input_config['input_format'] == 'zip':
+    if input_format == 'zip':
         idx = df['filename'].tolist()
     else:
         idx = df.index.tolist()
 
     topic_nums, topic_scores, _, __ = model.get_documents_topics(idx, reduced=reduced, num_topics=n_topics)
     
-    if input_config['input_format'] == 'zip':
+    if input_format == 'zip':
         idx = df['filename'].tolist()
     else:
         idx = list(df.index)
