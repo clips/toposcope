@@ -18,14 +18,15 @@ def main():
     config_object.read('config.ini')
     input_config = config_object["INPUT_CONFIG"] 
     output_config = config_object["OUTPUT_CONFIG"]
+    algorithm = input_config['algorithm'].strip()
     
-    if input_config['algorithm'] == 'LDA':
+    if algorithm == 'LDA':
         processing_config = config_object["LDA_CONFIG"]
-    elif input_config['algorithm'] == 'NMF':
+    elif algorithm == 'NMF':
         processing_config = config_object["NMF_CONFIG"]
-    elif input_config['algorithm'] == 'BERTopic':
+    elif algorithm == 'BERTopic':
         processing_config = config_object["BERTOPIC_CONFIG"]
-    elif input_config['algorithm'] =='Top2Vec':
+    elif algorithm =='Top2Vec':
         processing_config = config_object["TOP2VEC_CONFIG"]
     else:
         raise KeyError("Please specify one of the following algorithms: 'BERTopic', 'Top2Vec', 'NMF', 'LDA'.")
@@ -111,31 +112,31 @@ def main():
 
 #FIT_MODEL_____________________________________________________________________________________
     if algorithm == 'BERTopic':
-        model = preprocessing_config['model']
-        lang = preprocessing_config['lang']
-        upper_ngram_range = preprocessing_config['upper_ngram_range']
-        min_topic_size = preprocessing_config['min_topic_size']
-        n_topics = preprocessing_config['topic_reduction']
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = BERT_topic(df, model, text_column, dir_out, lang, upper_ngram_range, min_topic_size, n_topics, input_format, timestamps)
+        model = processing_config['model']
+        lang = processing_config['lang']
+        upper_ngram_range = 1 #to do
+        min_topic_size = int(processing_config['min_topic_size'])
+        n_topics = int(processing_config['topic_reduction'])
+        topic_doc_matrix, keyword_df, topic_term_matrix, _ = BERT_topic(df, model, text_column, dir_out, lang, upper_ngram_range, min_topic_size, n_topics, input_format, timestamps)
     
     elif algorithm == 'LDA':
-        lang = preprocessing_config['lang']
-        upper_ngram_range = preprocessing_config['upper_ngram_range']
-        n_topics = preprocessing_config['n_components']
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = LDA_model(df, 'text', dir_out, upper_ngram_range, n_topics, input_format, timestamps)
+        lang = processing_config['lang']
+        upper_ngram_range = int(processing_config['upper_ngram_range'])
+        n_topics = int(processing_config['n_components'])
+        topic_doc_matrix, keyword_df, topic_term_matrix, _ = LDA_model(df, 'text', dir_out, upper_ngram_range, n_topics, input_format, timestamps)
     
     elif algorithm == 'NMF':
-        lang = preprocessing_config['lang']
-        upper_ngram_range = preprocessing_config['upper_ngram_range']
-        n_topics = preprocessing_config['n_components']
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = NMF_model(df, 'text', dir_out, upper_ngram_range, n_topics, input_format, timestamps)
+        lang = processing_config['lang']
+        upper_ngram_range = int(processing_config['upper_ngram_range'])
+        n_topics = int(processing_config['n_components'])
+        topic_doc_matrix, keyword_df, topic_term_matrix, _ = NMF_model(df, 'text', dir_out, upper_ngram_range, n_topics, input_format, timestamps)
     
     elif algorithm == 'Top2Vec':
-        model = preprocessing_config['model']
-        lang = preprocessing_config['lang']
-        upper_ngram_range = preprocessing_config['upper_ngram_range']
-        n_topics = preprocessing_config['topic_reduction']
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = top_2_vec(df, 'text', model, dir_out, n_topics, input_format, upper_ngram_range, timestamps)
+        model = processing_config['model']
+        lang = processing_config['lang']
+        upper_ngram_range = int(processing_config['upper_ngram_range'])
+        n_topics = int(processing_config['topic_reduction'])
+        topic_doc_matrix, keyword_df, topic_term_matrix, _ = top_2_vec(df, 'text', model, dir_out, n_topics, input_format, upper_ngram_range, timestamps)
 
     keywords = keyword_df.keywords.tolist()
 

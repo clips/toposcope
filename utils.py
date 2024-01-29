@@ -19,8 +19,8 @@ from sklearn.decomposition import LatentDirichletAllocation, NMF
 from top2vec import Top2Vec
 
 #BERTopic
-#from bertopic import BERTopic
-from umap import umap_ as UMAP
+from bertopic import BERTopic
+from umap import UMAP
 from sentence_transformers import SentenceTransformer
 from transformers.pipelines import pipeline
 
@@ -120,9 +120,9 @@ def BERT_topic(df, base_model, text_column, dir_out, lang, upper_ngram_range, mi
 
     # Generate visualizations
     print("Generating visualizations...")
-    generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings, topic_reduction, timestamps)
+    documents_fig = generate_bertopic_visualizations(topic_model, dir_out, df[text_column].to_numpy(), embeddings, topic_reduction, timestamps)
     
-    return topic_doc_matrix, keyword_df, topic_term_matrix
+    return topic_doc_matrix, keyword_df, topic_term_matrix, documents_fig
 
 def coherence(topics, texts):
 
@@ -134,7 +134,7 @@ def coherence(topics, texts):
     Returns:
         coherence score (float)
     """
-
+    print(topics)
     dictionary = Dictionary(texts)
     corpus = [dictionary.doc2bow(text) for text in texts]
     coherence_model = CoherenceModel(topics=topics, corpus=corpus, dictionary=dictionary, coherence='u_mass')
@@ -164,7 +164,7 @@ def LDA_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
 
     #initialize and fit model
     lda = LatentDirichletAllocation(
-    	n_components=int(topic_reduction),
+    	n_components=int(n_topics),
         learning_method='online',
 		random_state=42,
 		max_iter=100,
@@ -213,8 +213,8 @@ def LDA_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
     keyword_barcharts.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     # document topic plot
-    document_topic_fig, topic_labels = nmf_lda_visualize_documents(lda, vectorizer, df[text_column_name].to_numpy(), X, annotations)
-    document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
+    documents_fig, topic_labels = nmf_lda_visualize_documents(lda, vectorizer, df[text_column_name].to_numpy(), X, annotations)
+    documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     #compute topics over time
     if timestamps:
@@ -228,7 +228,7 @@ def LDA_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
         time_fig = visualize_topics_over_time(annotations, topic_labels, topics_over_time)
         time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
 
-    return topic_doc_matrix, keyword_df, components_df
+    return topic_doc_matrix, keyword_df, components_df, documents_fig
 
 def plot_document_topics_umap(model, texts, label_names, output_dir):
     """
@@ -307,9 +307,9 @@ def NMF_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
     X = vectorizer.fit_transform(texts)
 
     nmf = NMF(
-        n_components=int(n_components), 
+        n_components=int(n_topics), 
         init='random', 
-        random_state=42
+        random_state=42,
     )
 
     print('\nFitting NMF model...')
@@ -355,8 +355,8 @@ def NMF_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
     keywords_fig.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     # document topic plot
-    document_topic_fig, topic_labels = nmf_lda_visualize_documents(nmf, vectorizer, df[text_column_name].to_numpy(), X, annotations)
-    document_topic_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
+    documents_fig, topic_labels = nmf_lda_visualize_documents(nmf, vectorizer, df[text_column_name].to_numpy(), X, annotations)
+    documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     # compute topics over time
     if timestamps:
@@ -370,7 +370,7 @@ def NMF_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
         time_fig = visualize_topics_over_time(annotations, topic_labels, topics_over_time)
         time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
 
-    return topic_doc_matrix, keyword_df, components_df
+    return topic_doc_matrix, keyword_df, components_df, documents_fig
 
 def preprocess(text, nlp, lang, tokenize, lemmatize, remove_nltk_stopwords, remove_custom_stopwords, remove_punct, lowercase):
 
@@ -464,13 +464,13 @@ def tokenizer(text, upper_ngram_range):
 
         result = []
         n = 1
-        while n <= int(upper_n):
+        while n <= int(upper_ngram_range):
             for gram in ngrams(text.split(' '), n):
                 result.append(' '.join(gram).strip())
             n += 1
         return result
 
-def top_2_vec(df, text_column, base_model, dir_out, topic_reduction, input_format, timestamps=None):
+def top_2_vec(df, text_column, base_model, dir_out, topic_reduction, input_format, upper_ngram_range, timestamps=None):
 
     """
     Training pipeline for Top2Vec. Also creates visualizations.
@@ -516,7 +516,7 @@ def top_2_vec(df, text_column, base_model, dir_out, topic_reduction, input_forma
         embedding_model=embedding_model,
         split_documents=False,
         min_count=50, #words occurring less frequently than 'min_count' are ignored
-        tokenizer=tokenizer,
+        tokenizer=lambda x: tokenizer(x, upper_ngram_range=upper_ngram_range),
         umap_args=umap_args,
     )
 
@@ -613,4 +613,4 @@ def top_2_vec(df, text_column, base_model, dir_out, topic_reduction, input_forma
         time_fig = visualize_topics_over_time(annotations, topic_labels, topics_over_time)
         time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
     
-    return topic_doc_matrix, keyword_df, topic_term_matrix
+    return topic_doc_matrix, keyword_df, topic_term_matrix, documents_fig

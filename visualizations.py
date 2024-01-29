@@ -1,25 +1,22 @@
 #system
-import random as rd
 import itertools, os
 import numpy as np
 
 #preprocessing
-import itertools, warnings
+import itertools
 import pandas as pd
 from collections import Counter
 from scipy.spatial.distance import squareform
 from sklearn.preprocessing import normalize
-from tqdm import tqdm
 
 #Visualizations
 from typing import List, Union, Callable
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
-import plotly.express as px
 from scipy.cluster import hierarchy as sch
 from sklearn.metrics.pairwise import cosine_similarity
-from umap import umap_ as UMAP
+from umap import UMAP
 from scipy.sparse import csr_matrix
 
 """
@@ -59,7 +56,7 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, topic_red
         hierarchical_topics = model.hierarchical_topics(docs)
         document_fig = model.visualize_hierarchical_documents(docs, hierarchical_topics, reduced_embeddings=reduced_embeddings)
     else:
-        document_fig = model.visualize_hierarchical_documents(docs, reduced_embeddings=reduced_embeddings)
+        document_fig = model.visualize_documents(docs, reduced_embeddings=reduced_embeddings)
     document_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     # topics over time
@@ -67,6 +64,8 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, topic_red
         topics_over_time = model.topics_over_time(docs, timestamps, evolution_tuning=False, global_tuning=False)
         time_fig = model.visualize_topics_over_time(topics_over_time)
         time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
+    
+    return document_fig
 
 #TOP2VEC_________________________________________________________________________________________________________________________________
 def get_topics_over_time(documents, topic_names):
