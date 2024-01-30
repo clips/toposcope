@@ -19,8 +19,8 @@ from sklearn.decomposition import LatentDirichletAllocation, NMF
 from top2vec import Top2Vec
 
 #BERTopic
-from bertopic import BERTopic
-from umap import UMAP
+#from bertopic import BERTopic
+from umap import umap_ as UMAP
 from sentence_transformers import SentenceTransformer
 from transformers.pipelines import pipeline
 
@@ -217,7 +217,7 @@ def LDA_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
     documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     #compute topics over time
-    if timestamps:
+    if isinstance(timestamps, pd.Series):
         documents = pd.DataFrame(data={
             'Document': texts,
             'Timestamps': timestamps,
@@ -359,7 +359,7 @@ def NMF_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
     documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     # compute topics over time
-    if timestamps:
+    if isinstance(timestamps, pd.Series):
         documents = pd.DataFrame(data={
             'Document': texts,
             'Timestamps': timestamps,
@@ -602,7 +602,7 @@ def top_2_vec(df, text_column, base_model, dir_out, topic_reduction, input_forma
     # hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
 
     #topics over time
-    if timestamps:
+    if isinstance(timestamps, pd.Series):
         documents = pd.DataFrame(data={
             'Document': docs,
             'Timestamps': timestamps,

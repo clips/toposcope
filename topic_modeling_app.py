@@ -62,7 +62,7 @@ def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, time
         print("    Lowercase:", lowercase)
         print("    Remove punctuation:", remove_punct)
         
-        df[text_column] = df[text_column].progress_apply(lambda x: preprocess(
+        df['text'] = df['text'].progress_apply(lambda x: preprocess(
             x, 
             nlp, 
             lang, 
@@ -105,7 +105,7 @@ def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, time
 
 #EVALUATION____________________________________________________________________________________
     print('Evaluating model...')
-    texts = [doc.split() for doc in df[text_column]]
+    texts = [doc.split() for doc in df['text']]
     print('    - Coherence')
     coherence_score = coherence(keywords, texts)
     print('    - Diversity')
@@ -144,10 +144,7 @@ def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, time
 
     print('Done!')
 
-    return (
-        shutil.make_archive(base_name='output', format='zip', base_dir='output', root_dir='.'), 
-        doc_plot
-    )
+    return shutil.make_archive(base_name='output', format='zip', base_dir='output', root_dir='.')
 #______________________________________________________________________________________________
 if __name__ == "__main__":
     main()

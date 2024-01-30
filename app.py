@@ -116,12 +116,12 @@ with gr.Blocks(title="CLARIAH-VL Topic Modeling Pipeline", theme=theme, css=css)
             ).then( # then run pipeline
                 topic_modeling_app.main, 
                 inputs=[file, lang, algorithm, preprocessing_steps[0], model, min_topic_size, timestamp_col, n_topics, upper_ngram_range], 
-                outputs=[zip_out, doc_plot]
-                ).then( # then make output plots visible
-                    visible_plots,
-                    inputs=file,
-                    outputs=[doc_plot]
-                )
+                outputs=[zip_out])
+                # ).then( # then make output plots visible
+                #     visible_plots,
+                #     inputs=file,
+                #     outputs=[doc_plot]
+                # )
         
     with gr.Tab("User guidelines"):
         gr.Markdown("""

@@ -16,7 +16,7 @@ from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 from scipy.cluster import hierarchy as sch
 from sklearn.metrics.pairwise import cosine_similarity
-from umap import UMAP
+from umap import umap_ as UMAP
 from scipy.sparse import csr_matrix
 
 """
@@ -783,7 +783,7 @@ def nmf_lda_visualize_documents(
 
     # Extract embeddings
     embeddings_to_reduce = X
-    umap_model = UMAP(n_neighbors=15, metric='cosine', n_components=2, random_state=42).fit(embeddings_to_reduce)
+    umap_model = UMAP.UMAP(n_neighbors=15, metric='cosine', n_components=2, random_state=42).fit(embeddings_to_reduce)
     embeddings_2d = umap_model.embedding_
 
     unique_topics = topics = set(annotations)
