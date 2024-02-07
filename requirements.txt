@@ -1,5 +1,6 @@
 top2vec[indexing]==1.0.34
 sentence_transformers==2.2.2
+datasets==2.16.1
 tensorflow[and_cuda]==2.15.0.post1
 tensorflow_hub==0.15.0
 tensorflow_text==2.15.0
