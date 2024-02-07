@@ -20,7 +20,7 @@ from top2vec import Top2Vec
 
 #BERTopic
 #from bertopic import BERTopic
-from umap import umap_ as UMAP
+from umap import UMAP
 from sentence_transformers import SentenceTransformer
 from transformers.pipelines import pipeline
 

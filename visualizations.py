@@ -16,7 +16,7 @@ from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 from scipy.cluster import hierarchy as sch
 from sklearn.metrics.pairwise import cosine_similarity
-from umap import umap_ as UMAP
+from umap import UMAP
 from scipy.sparse import csr_matrix
 
 """
