@@ -6,29 +6,49 @@ import gradio as gr
 from configparser import ConfigParser
 from utils import *
 from tqdm import tqdm
-tqdm.pandas()
 
 rd.seed(42)
 
 #______________________________________________________________________________________________
 
-def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, timestamp_col, n_topics, upper_ngram_range, progress=gr.Progress(track_tqdm=True)):
+def main(
+        input_type,
+        file, 
+        dataset_name,
+        subset,
+        split,
+        column_name,
+        stopword_file, 
+        lang, 
+        algorithm, 
+        preprocessing_steps, 
+        model, 
+        min_topic_size, 
+        timestamp_col, 
+        n_topics, 
+        upper_ngram_range, 
+        progress=gr.Progress(track_tqdm=True)
+        ):
     
     unique_output_id = str(uuid.uuid4())
-
     min_topic_size = int(min_topic_size)
     n_topics = int(n_topics)
-    upper_ngram_range = int(n_topics)
+    upper_ngram_range = int(upper_ngram_range)
 
 #LOAD_DATA_____________________________________________________________________________________
-    print("Loading data...")
-    input_format = file[-3:].lower()
-    df = load_data(file, input_format, ',')
-    if input_format == 'csv' and timestamp_col.strip():
+    if input_type == 'Corpus':
+        input_format = file[-3:].lower()
+        df = load_data(format, fn, column_name, ',')
+    else: #Huggingface dataset
+        input_format = 'hf'
+        df = load_huggingface(dataset_name, subset, split)
+
+    if timestamp_col.strip() and input_format != 'zip':
         timestamps = df[timestamp_col]
     else:
         timestamps = None
-    df['text'] = df['text'].apply(lambda x: str(x))
+
+    df[column_name] = df[column_name].apply(lambda x: str(x))
             
 #PREPROCESSING_________________________________________________________________________________
     print('Preprocessing data...')
@@ -38,7 +58,7 @@ def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, time
         tokenize = True if 'tokenize' in preprocessing_steps or 'lemmatize' in preprocessing_steps else False
         lemmatize = True if 'lemmatize' in preprocessing_steps else False
         remove_nltk_stopwords = True if 'remove NLTK stopwords' in preprocessing_steps else False
-        remove_custom_stopwords = True if 'remove custom stopwords' in preprocessing_steps else False
+        remove_custom_stopwords = stopword_file.name if stopword_file else None
         lowercase = True if 'lowercase' in preprocessing_steps else False
         remove_punct = True if 'remove punctuation' in preprocessing_steps else False
 
@@ -63,18 +83,30 @@ def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, time
         print("    Remove custom stopwords:", remove_custom_stopwords)
         print("    Lowercase:", lowercase)
         print("    Remove punctuation:", remove_punct)
+
+        if remove_custom_stopwords:
+            with open(remove_custom_stopwords) as x:
+                lines = x.readlines()
+                custom_stopwords = set([l.strip() for l in lines])
+        else:
+            custom_stopwords = None
+
+        tqdm.pandas()
         
-        df['text'] = df['text'].progress_apply(lambda x: preprocess(
+        df[column_name] = df[column_name].progress_apply(lambda x: preprocess(
             x, 
             nlp, 
             lang, 
             tokenize,
             lemmatize, 
             remove_nltk_stopwords, 
-            remove_custom_stopwords, 
+            custom_stopwords,
             remove_punct, 
-            lowercase)
+            lowercase,
+            )
         )
+
+        progress(1, desc="Fitting topic model, please wait...")
     
 #PREPARE_OUTPUT_DIR____________________________________________________________________________
     # first check if directory where all outputs are stored exists
@@ -91,22 +123,22 @@ def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, time
 
 #FIT_MODEL_____________________________________________________________________________________
     if algorithm == 'BERTopic':
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = BERT_topic(df, model, 'text', unique_dir_out, lang, upper_ngram_range, min_topic_size, n_topics, input_format, timestamps)
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = BERT_topic(df, model, column_name, unique_dir_out, lang, upper_ngram_range, min_topic_size, n_topics, input_format, timestamps)
     
     elif algorithm == 'LDA':
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = LDA_model(df, 'text', unique_dir_out, upper_ngram_range, n_topics, input_format, timestamps)
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = LDA_model(df, column_name, unique_dir_out, upper_ngram_range, n_topics, input_format, timestamps)
     
     elif algorithm == 'NMF':
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = NMF_model(df, 'text', unique_dir_out, upper_ngram_range, n_topics, input_format, timestamps)
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = NMF_model(df, column_name, unique_dir_out, upper_ngram_range, n_topics, input_format, timestamps)
     
     elif algorithm == 'Top2Vec':
-        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = top_2_vec(df, 'text', model, unique_dir_out, n_topics, input_format, timestamps)
+        topic_doc_matrix, keyword_df, topic_term_matrix, doc_plot = top_2_vec(df, column_name, model, unique_dir_out, n_topics, input_format, upper_ngram_range, timestamps)
 
     keywords = keyword_df.keywords.tolist()
 
 #EVALUATION____________________________________________________________________________________
     print('Evaluating model...')
-    texts = [doc.split() for doc in df['text']]
+    texts = [doc.split() for doc in df[column_name]]
     print('    - Coherence')
     coherence_score = coherence(keywords, texts)
     print('    - Diversity')
@@ -146,8 +178,8 @@ def main(file, lang, algorithm, preprocessing_steps, model, min_topic_size, time
     print('Done!')
 
     return (
-        shutil.make_archive(base_name=os.path.join(unique_dir_out), format='zip', base_dir=unique_dir_out),
-        doc_plot,
+        shutil.make_archive(base_name=os.path.join(unique_dir_out), format='zip', base_dir=unique_dir_out), 
+        doc_plot
     )
 #______________________________________________________________________________________________
 if __name__ == "__main__":

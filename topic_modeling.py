@@ -82,6 +82,13 @@ def main():
         print("    Remove custom stopwords:", bool(remove_custom_stopwords))
         print("    Lowercase:", bool(lowercase))
         print("    Remove punctuation:", bool(remove_punct))
+
+        if remove_custom_stopwords:
+            with open(remove_custom_stopwords) as x:
+                lines = x.readlines()
+                custom_stopwords = set([l.strip() for l in lines])
+        else:
+            custom_stopwords = None
         
         df[text_column] = df[text_column].progress_apply(lambda x: preprocess(
             x, 
@@ -90,7 +97,7 @@ def main():
             tokenize,
             lemmatize, 
             remove_nltk_stopwords, 
-            remove_custom_stopwords, 
+            custom_stopwords, 
             remove_punct, 
             lowercase)
         )

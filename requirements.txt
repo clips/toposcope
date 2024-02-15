@@ -5,6 +5,7 @@ tensorflow[and_cuda]==2.15.0.post1
 tensorflow_hub==0.15.0
 tensorflow_text==2.15.0
 scikit-learn==1.2.0
+scipy==1.11.4
 bertopic==0.16.0
 numpy==1.23.5
 gradio==4.14.0

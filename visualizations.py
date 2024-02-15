@@ -39,30 +39,30 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, topic_red
     """
 
     # topic hierarchy
-    # if topic_reduction:
-    #     hierarchical_topics = model.hierarchical_topics(docs)
-    #     hierarchy_fig = model.visualize_hierarchy(hierarchical_topics=hierarchical_topics)
-    # else:
-    #     hierarchy_fig = model.visualize_hierarchy()
-    # hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
+    if topic_reduction:
+        hierarchical_topics = model.hierarchical_topics(docs)
+        hierarchy_fig = model.visualize_hierarchy(hierarchical_topics=hierarchical_topics, title=None)
+    else:
+        hierarchy_fig = model.visualize_hierarchy(title=None)
+    hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
 
     # most important keywords per topic
-    keyword_fig = model.visualize_barchart(topics=model.get_topics(), width=400)
+    keyword_fig = model.visualize_barchart(topics=model.get_topics(), width=400, title=None)
     keyword_fig.write_html(os.path.join(dir_out, 'visualizations', 'keyword_barcharts.html'))
 
     # documents and topics
     reduced_embeddings = UMAP(metric='cosine', random_state=42).fit_transform(embeddings)
     if topic_reduction:
         hierarchical_topics = model.hierarchical_topics(docs)
-        document_fig = model.visualize_hierarchical_documents(docs, hierarchical_topics, reduced_embeddings=reduced_embeddings)
+        document_fig = model.visualize_hierarchical_documents(docs, hierarchical_topics, reduced_embeddings=reduced_embeddings, title=None)
     else:
-        document_fig = model.visualize_documents(docs, reduced_embeddings=reduced_embeddings)
+        document_fig = model.visualize_documents(docs, reduced_embeddings=reduced_embeddings, title=None)
     document_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     # topics over time
     if timestamps:
         topics_over_time = model.topics_over_time(docs, timestamps, evolution_tuning=False, global_tuning=False)
-        time_fig = model.visualize_topics_over_time(topics_over_time)
+        time_fig = model.visualize_topics_over_time(topics_over_time, title=None)
         time_fig.write_html(os.path.join(dir_out, 'visualizations', 'topics_over_time.html'))
     
     return document_fig
@@ -158,16 +158,6 @@ def visualize_topics_over_time(annotations,
     fig.update_yaxes(showgrid=True)
     fig.update_layout(
         yaxis_title="Normalized Frequency" if normalize_frequency else "Frequency",
-        title={
-            'text': f"{title}",
-            'y': .95,
-            'x': 0.40,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
         template="simple_white",
         width=width,
         height=height,
@@ -272,15 +262,6 @@ def top2vec_visualize_hierarchy(topic_model,
     fig.update_layout(
         plot_bgcolor='#ECEFF1',
         template="plotly_white",
-        title={
-            'text': f"{title}",
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
         hoverlabel=dict(
             bgcolor="white",
             font_size=16,
@@ -382,15 +363,6 @@ def top2vec_visualize_barchart(top2vec_model, hierarchy, topics: List[int] = Non
     fig.update_layout(
         template="plotly_white",
         showlegend=False,
-        title={
-            'text': f"{title}",
-            'x': .5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
         width=width*4,
         height=height*rows if rows > 1 else height * 1.3,
         hoverlabel=dict(
@@ -550,15 +522,6 @@ def top2vec_visualize_documents(topic_model,
     # Stylize layout
     fig.update_layout(
         template="simple_white",
-        title={
-            'text': f"{title}",
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
         width=width,
         height=height
     )
@@ -638,15 +601,6 @@ def nmf_visualize_barchart(topic_model,
     fig.update_layout(
         template="plotly_white",
         showlegend=False,
-        title={
-            'text': f"{title}",
-            'x': .5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
         width=width*4,
         height=height*rows if rows > 1 else height * 1.3,
         hoverlabel=dict(
@@ -731,15 +685,6 @@ def lda_visualize_barchart(topic_model,
     fig.update_layout(
         template="plotly_white",
         showlegend=False,
-        title={
-            'text': f"{title}",
-            'x': .5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
         width=width*4,
         height=height*rows if rows > 1 else height * 1.3,
         hoverlabel=dict(
@@ -783,7 +728,7 @@ def nmf_lda_visualize_documents(
 
     # Extract embeddings
     embeddings_to_reduce = X
-    umap_model = UMAP.UMAP(n_neighbors=15, metric='cosine', n_components=2, random_state=42).fit(embeddings_to_reduce)
+    umap_model = UMAP(n_neighbors=15, metric='cosine', n_components=2, random_state=42).fit(embeddings_to_reduce)
     embeddings_2d = umap_model.embedding_
 
     unique_topics = topics = set(annotations)
@@ -866,15 +811,6 @@ def nmf_lda_visualize_documents(
     # Stylize layout
     fig.update_layout(
         template="simple_white",
-        title={
-            'text': f"{title}",
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(
-                size=22,
-                color="Black")
-        },
         width=width,
         height=height
     )
