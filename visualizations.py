@@ -52,11 +52,7 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, topic_red
 
     # documents and topics
     reduced_embeddings = UMAP(metric='cosine', random_state=42).fit_transform(embeddings)
-    if topic_reduction:
-        hierarchical_topics = model.hierarchical_topics(docs)
-        document_fig = model.visualize_hierarchical_documents(docs, hierarchical_topics, reduced_embeddings=reduced_embeddings, title=None)
-    else:
-        document_fig = model.visualize_documents(docs, reduced_embeddings=reduced_embeddings, title=None)
+    document_fig = model.visualize_documents(docs, reduced_embeddings=reduced_embeddings, title='')
     document_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     # topics over time

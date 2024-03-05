@@ -20,7 +20,7 @@ from sklearn.decomposition import LatentDirichletAllocation, NMF
 from top2vec import Top2Vec
 
 #BERTopic
-#from bertopic import BERTopic
+from bertopic import BERTopic
 from umap import UMAP
 from sentence_transformers import SentenceTransformer
 from transformers.pipelines import pipeline

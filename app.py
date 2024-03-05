@@ -111,10 +111,10 @@ with gr.Blocks(title="Toposcope", theme=theme, css=css) as demo:
 
         # Model parameters
         with gr.Row(visible=False, variant='panel') as params:
-            model = gr.Textbox(label="Embedding model", value="", info="See user guidelines for options", interactive=True, visible=False)
+            model = gr.Textbox(label="Embedding model", value="all-MiniLM-L6-v2", info="See user guidelines for options\n(default='all-MiniLM-L6-v2')", interactive=True, visible=False)
             n_topics = gr.Textbox(label="Number of topics", info="When using BERTopic/Top2Vec, passing '0' will automatically optimize this value.", value='10', interactive=True, visible=False)
-            min_topic_size = gr.Textbox(label="Min. number of texts per topic", info="Must be > 1", interactive=True, value='2', visible=False)
-            upper_ngram_range = gr.Dropdown(["1", "2", "3", "4"], value="1", label="Upper n-gram range", info="Higher range increases processing time.", interactive=True)
+            min_topic_size = gr.Textbox(label="Min. number of texts per topic", info="Must be > 1; Higher values will result in fewer topics.", interactive=True, value='2', visible=False)
+            upper_ngram_range = gr.Dropdown(["1", "2", "3", "4"], value="1", label="Upper n-gram range", info="Note that higher range increases processing time.", interactive=True)
 
         # Toggle stopword file widget
         preprocessing_steps[0].change(
