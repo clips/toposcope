@@ -11,6 +11,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from collections import OrderedDict
 from gensim.corpora import Dictionary
 from gensim.models import CoherenceModel
+from datasets import load_dataset
 
 #LDA, NMF
 from sklearn.decomposition import LatentDirichletAllocation, NMF
@@ -32,6 +33,23 @@ from visualizations import *
 
 rd.seed(42)
 #_____________________________________________________________________________________________
+def load_huggingface(dataset_name, subset=None, split=None):
+
+    # Load dataset
+    if subset.strip() and split.strip():
+        hf_dataset = load_dataset(dataset_name, subset, split=split)
+    elif subset.strip() and not split.strip():
+        hf_dataset = load_dataset(dataset_name, subset)
+    elif not subset.strip() and split.strip():
+        hf_dataset = load_dataset(dataset_name, split=split)
+    else: # not subset.strip() and not split.strip()
+        hf_dataset = load_dataset(dataset_name)
+
+    # Convert to Pandas DataFrame
+    df = pd.DataFrame(hf_dataset)
+
+    return df
+
 def BERT_topic(df, base_model, text_column, dir_out, lang, upper_ngram_range, min_topic_size, topic_reduction, input_format, timestamps=None):
 
     """
@@ -411,7 +429,7 @@ def preprocess(text, nlp, lang, tokenize, lemmatize, remove_nltk_stopwords, remo
 
     #remove NLTK stopwords
     if remove_nltk_stopwords:
-        stop_words = stopwords.words(lang)
+        stop_words = stopwords.words(lang.lower().strip())
         text = ' '.join([t for t in text.split() if t.lower() not in stop_words])
 
     #remove custom stop words
