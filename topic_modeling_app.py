@@ -27,10 +27,10 @@ def main(
         timestamp_col, 
         n_topics, 
         upper_ngram_range, 
+        unique_output_id,
         progress=gr.Progress(track_tqdm=True)
         ):
     
-    unique_output_id = str(uuid.uuid4())
     min_topic_size = int(min_topic_size)
     n_topics = int(n_topics)
     upper_ngram_range = int(upper_ngram_range)

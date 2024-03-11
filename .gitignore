@@ -9,3 +9,6 @@ __pycache__
 
 # Ignore data for demo
 **/demo_data.csv
+
+# Ignore gmail app password for sending output e-mails
+app_password.txt

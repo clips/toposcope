@@ -152,7 +152,6 @@ def coherence(topics, texts):
     Returns:
         coherence score (float)
     """
-    print(topics)
     dictionary = Dictionary(texts)
     corpus = [dictionary.doc2bow(text) for text in texts]
     coherence_model = CoherenceModel(topics=topics, corpus=corpus, dictionary=dictionary, coherence='u_mass')
