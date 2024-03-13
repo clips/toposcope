@@ -185,6 +185,7 @@ with gr.Blocks(title="Toposcope", theme=theme, css=css) as demo:
         submit_button.click( # first generate run index
             generate_run_id,
             outputs=run_id,
+            trigger_mode="once",
         ).then( # then make output components visible
             visible_output, 
             inputs=file, 
