@@ -285,7 +285,7 @@ def load_data(in_dir, input_format, delimiter):
     Returns:
         pd.DataFrame() with corpus
     """
-
+    
     if input_format == 'csv': # csv file
         df = pd.read_csv(in_dir, delimiter=delimiter)
 

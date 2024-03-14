@@ -38,7 +38,9 @@ def main(
 #LOAD_DATA_____________________________________________________________________________________
     if input_type == 'Corpus':
         input_format = file[-3:].lower()
-        df = load_data(format, fn, column_name, ',')
+        file_size = os.path.getsize(file.name)
+        assert file_size < 1000000000 # ensure uploaded corpus is smaller than 1GB
+        df = load_data(file, input_format, ',')
     else: #Huggingface dataset
         input_format = 'hf'
         df = load_huggingface(dataset_name, subset, split)
