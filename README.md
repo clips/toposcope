@@ -9,6 +9,8 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 3. Install the requirements: ```pip3 install -r requirements.txt```
 4. Download NLTK's stopwords: ```python -m nltk.downloader stopwords```
 
+Note that a GPU is required to use this pipeline.
+
 ### Pipeline overview
 
 ![Alt text](clariah_topic_pipeline.png)
