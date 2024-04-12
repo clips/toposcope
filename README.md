@@ -9,24 +9,16 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 3. Install the requirements: ```pip3 install -r requirements.txt```
 4. Download NLTK's stopwords: ```python -m nltk.downloader stopwords```
 
-### Quick start
-1. Set up the configuration file
-2. Run the pipeline by calling ```python -u topic_modeling.py```
-
-### Demo
-1. Run ```python get_demo_data.py``` to retrieve the 20 NewsGroups dataset from https://huggingface.co/datasets/SetFit/20_newsgroups.
-2. Initialize the config file with the default settings by calling ```python create_config.py```
-3. Run the pipeline: ```python topic_modeling.py```
-
-### User Interface
-To run the pipeline in a Gradio User Interface, run python app.py to host the UI locally.
-
 ### Pipeline overview
 
 ![Alt text](clariah_topic_pipeline.png)
 
+### User interface
+To run the pipeline in a Gradio User Interface, run python app.py to host the UI locally.
+
+### From the command line
 #### Set up config file
-In ```create_config.py```, specify the following:
+When using the tool from the command line, specify the following in ```create_config.py```:
 - which algorithm to use: BERTopic, Top2Vec, LDA or NMDF
 - input format (.csv file or .zip containing .txt)
 - in case of .csv: the column name containing the text data and the delimiter
