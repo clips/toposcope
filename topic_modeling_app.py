@@ -86,15 +86,7 @@ def main(
         print("    Lowercase:", lowercase)
         print("    Remove punctuation:", remove_punct)
 
-        if remove_custom_stopwords:
-            with open(remove_custom_stopwords) as x:
-                lines = x.readlines()
-                custom_stopwords = set([l.strip() for l in lines])
-        else:
-            custom_stopwords = None
-
         tqdm.pandas()
-        
         df[column_name] = df[column_name].progress_apply(lambda x: preprocess(
             x, 
             nlp, 
@@ -102,7 +94,7 @@ def main(
             tokenize,
             lemmatize, 
             remove_nltk_stopwords, 
-            custom_stopwords,
+            remove_custom_stopwords,
             remove_punct, 
             lowercase,
             )

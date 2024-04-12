@@ -210,10 +210,10 @@ with gr.Blocks(title="Toposcope", theme=theme, css=css) as demo:
 - **BERTopic** (Grootendorst, 2022): State-of-the-art neural algorithm that can be used with any pre-trained transformer model that is publicly available on the [Huggingface hub](https://huggingface.co/models). This is useful when you want to use a model that is trained on the same (or similar) data as your corpus. The default model that BERTopic uses is "all-MiniLM-L6-v2" (for English data only). Other models that can be used are, for instance, [BERTje](https://huggingface.co/GroNLP/bert-base-dutch-cased)/[RobBERT](https://huggingface.co/DTAI-KULeuven/robbert-2023-dutch-base) (Dutch), [CamemBERT](https://huggingface.co/almanach/camembert-base) (French), [German BERT](https://huggingface.co/google-bert/bert-base-german-cased), and [multi-lingual BERT](https://huggingface.co/google-bert/bert-base-multilingual-cased) (other languages)
 - **NMF/LDA**: Classical machine learning algorithms, which generally perform worse than Top2Vec and BERTopic, but worth investigating when working with a large corpus that contains relatively long texts.
 
-The selection of the embedding model used in Top2Vec or BERTopic should, a.o. depend on the language of your data. If your corpus contains texts written in multiple languages, it is recommended to use a multilingual model. It is also recommended to use a multi-lingual model if the corpus contains texts written in any language other than Dutch, English, French, or German. When no pre-trained mono- or multi-lingual model that was trained on the relevant language (or dialect / historical variant) exists, it is best to either train a new model with Top2Vec/Doc2Vec, or use a model that was pre-trained on a structurally similar language (e.g. use a Dutch model for Afrikaans).
+The selection of the embedding model used in Top2Vec or BERTopic should, a.o. depend on the language of your data. If your corpus contains texts written in multiple languages, it is recommended to use a multilingual model. It is also recommended to use a multi-lingual model if the corpus contains texts written in any language other than Dutch, English, French, or German. When no pre-trained mono- or multi-lingual model that was trained on the relevant language (or dialect / historical variant) exists, it is best to either train a new model with Top2Vec using Doc2Vec to generate embeddings, or use a model that was pre-trained on a structurally similar language (e.g. use a Dutch model for Afrikaans).
 
 ### Preprocessing
-When using the classical machine learning algorithms (NMF/LDA), it is recommended to apply all preprocessing steps provided in the pipeline (tokenization, lemmatization, lowercasing, and removing stopwords and punctuation). For the neural models, it is not required, since they rely on more sophisticated methods, but experimenting with different preprocessing steps could still result in improvements. Note that when selecting lemmatization, it is important to also apply tokenization.      
+When using the classical machine learning algorithms (NMF/LDA), it is recommended to apply all preprocessing steps provided in the pipeline (tokenization, lemmatization, lowercasing, and removing stopwords and punctuation). For the neural models, it is not required, since they rely on more sophisticated methods, but experimenting with different preprocessing steps could still result in improvements. Note that when selecting lemmatization, it is important to also apply tokenization. Note that multi-lingual preprocessing is currently not supported.     
 
 ### Model parameter tuning and evaluation of the results
 Which model and hyperparameters are optimal depends on the data that is used. Therefore, optimization experiments are necessary to find the best configuration. To evaluate the results of the topic modeling algorithm, it is important to investigate both the quantitative results - the diversity and coherence scores - but also the qualitative results by looking at the individual topic predictions, visualizations, and the most important keywords per topic. 
@@ -230,10 +230,10 @@ In order to help the user evaluate the topic model, diversity and coherence scor
         gr.Markdown("""        
         ### Project
         Toposcope is a topic modeling pipeline that was developed by [CLiPS](https://www.uantwerpen.be/en/research-groups/clips/) ([University of Antwerp](https://www.uantwerpen.be/en/)) during the [CLARIAH-VL](https://clariahvl.hypotheses.org/) project.
-        The code is available here: https://github.com/LemmensJens/CLARIAH-topic
+        The code is available here: https://github.com/clips/toposcope.
 
         ### Contact
-        If you have questions, please send them to [Jens Lemmens](mailto:jens.lemmens@uantwerpen.be) or [Walter Daelemans](mailto:walter.daelemans@uantwerpen.be)
+        If you have questions, please send them to [Jens Lemmens](mailto:jens.lemmens@uantwerpen.be) or [Walter Daelemans](mailto:walter.daelemans@uantwerpen.be).
         """)
     
     with gr.Row():
