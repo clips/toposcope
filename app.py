@@ -1,12 +1,6 @@
 import gradio as gr
-import pandas as pd
 import topic_modeling_app
-import os, uuid
-
-import smtplib 
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
+import uuid
 
 css = """
 h1 {
@@ -35,39 +29,6 @@ theme = gr.themes.Soft(
 def generate_run_id():
     run_id = str(uuid.uuid4())
     return gr.update(value=run_id, visible=True)
-
-def send_mail(receiver, run_id):
-  
-  """Sends email with pipeline output attached to user."""
-
-  if receiver.strip(): #check if user actually wants to receive output
-
-    # specify header
-    msg = MIMEMultipart()
-    msg['From'] = 'toposcope.ua@gmail.com'
-    msg['To'] = receiver.strip()
-    msg['Subject'] = f'Output {run_id}'
-
-    # add body of message
-    body = f'Dear Toposcope user,\n\nAttached you can find the output of run {run_id}.\n\nKind regards.'
-    msg.attach(MIMEText(body, 'plain'))
-
-    # attach output
-    with open(f'./outputs/{run_id}.zip', 'rb') as file:
-      msg.attach(MIMEApplication(file.read(), Name=f'{run_id}.zip'))
-      text = msg.as_string()
-
-    # set up mailing server
-    path = '/var/www/CLARIAH-topic/app_password.txt' 
-    if os.path.exists(path):
-        with open(path) as f:
-            app_password = f.read()
-
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login('toposcope.ua@gmail.com', app_password)
-        server.sendmail('toposcope.ua@gmail.com', receiver, text)
-        server.quit()
 
 def show_input(input_type):
     """
@@ -159,9 +120,6 @@ with gr.Blocks(title="Toposcope", theme=theme, css=css) as demo:
             min_topic_size = gr.Textbox(label="Min. number of texts per topic", info="Must be > 1; Higher values will result in fewer topics.", interactive=True, value='2', visible=False)
             upper_ngram_range = gr.Dropdown(["1", "2", "3", "4"], value="1", label="Upper n-gram range", info="Note that higher range increases processing time.", interactive=True)
 
-        with gr.Row(variant="panel"):
-            receiver = gr.Textbox(label='E-mail', info="Please provide your e-mail address to receive the output in your mailbox (optional). Personal info will not be saved or used for any other purpose than this application.")
-
         # Toggle stopword file widget
         preprocessing_steps[0].change(
             show_stopword_widget, preprocessing_steps[0], [stopword_widget]
@@ -198,9 +156,6 @@ with gr.Blocks(title="Toposcope", theme=theme, css=css) as demo:
                     visible_plots,
                     inputs=doc_plot,
                     outputs=doc_plot
-                ).then(
-                    send_mail,
-                    inputs=[receiver, run_id]
                 )
         
     with gr.Tab("User guidelines"):
