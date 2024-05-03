@@ -4,8 +4,8 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 
 ### Installation
 
-1. Create a new conda environment: ```conda create -n {name here} python=3.9.18```
-2. Clone the repository: ```git clone https://github.com/LemmensJens/CLARIAH-topic.git```
+1. Create a new conda environment: ```conda create -n toposcope python=3.9.18```
+2. Clone the repository: ```git clone https://github.com/clips/toposcope.git```
 3. Install the requirements: ```pip3 install -r requirements.txt```
 4. Download NLTK's stopwords: ```python -m nltk.downloader stopwords```
 
