@@ -56,9 +56,14 @@ def BERT_topic(df, base_model, text_column, dir_out, lang, upper_ngram_range, mi
     Training pipeline for BERTopic
     Arguments:
         df: pd.DataFrame with corpus,
+        base_model: embedding model,
         text_column: text column name (str),
         dir_out: output dir,
         lang: language,
+        upper_ngram_range: int(),
+        min_topic_size: int() - minimum number of documents that a topic needs to occur in to be considered a topic,
+        topic_reduction: bool(),
+        input_format: csv/zip/huggingface,
         timestamps: if provided, visualize topics over time
     Returns:
         Topic document matrix
@@ -167,6 +172,9 @@ def LDA_model(df, text_column_name, dir_out, upper_ngram_range, n_topics, input_
         df: pd.DataFrame with corpus 
         text_column_name: text column name in df
         dir_out: output directory
+        upper_ngram_range: int()
+        input_format: csv/zip/huggingface
+        timestamps
     Returns:
         Topic document matrix
         Keywords per topic dataframe
@@ -251,7 +259,8 @@ def plot_document_topics_umap(model, texts, label_names, output_dir):
     """
     Generate a 2D plot of documents representing their topics using UMAP.
     Arguments:
-        model: trained LDA model
+        model: trained LDA model,
+        texts: corpus,
         label_names: list of label names corresponding to the topics
         output_dir: output directory
     Returns:
@@ -615,8 +624,8 @@ def top_2_vec(df, text_column, base_model, dir_out, topic_reduction, input_forma
     documents_fig.write_html(os.path.join(dir_out, 'visualizations', 'document_topic_plot.html'))
 
     #hierarchy
-    # hierarchy_fig = top2vec_visualize_hierarchy(model, annotations, reduced)
-    # hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
+    hierarchy_fig = top2vec_visualize_hierarchy(model, annotations, reduced)
+    hierarchy_fig.write_html(os.path.join(dir_out, 'visualizations', 'hierarchy.html'))
 
     #topics over time
     if isinstance(timestamps, pd.Series):

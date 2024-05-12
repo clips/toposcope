@@ -33,6 +33,8 @@ def generate_bertopic_visualizations(model, dir_out, docs, embeddings, topic_red
         model: Fitted BERTopic model,
         dir_out: output directory (str),
         docs: pandas Series containing corpus
+        embeddings: document embeddings,
+        topic_reduction (bool),
         timestamps: None by default
     Return:
         None
