@@ -104,9 +104,6 @@ def BERT_topic(df, base_model, text_column, dir_out, lang, upper_ngram_range, mi
     )
 
     print('\nFitting BERTopic model...')
-    _, probs = topic_model.fit_transform(df[text_column].to_numpy())
-    topic_idx = topic_model.get_topic_info()['Topic']
-
     # fit the model
     _, probs = topic_model.fit_transform(
         df[text_column].to_numpy(), 
