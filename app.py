@@ -196,4 +196,4 @@ In order to help the user evaluate the topic model, diversity and coherence scor
         gr.Markdown("""<center><img src="https://thomasmore.be/sites/default/files/2022-11/UA-hor-1-nl-rgb.jpg" alt="Image" width="175"/></center>""")
 
 
-demo.launch(share=False, server_port=7861, server_name='0.0.0.0')
+demo.launch(share=True, server_port=7861, server_name='0.0.0.0')
