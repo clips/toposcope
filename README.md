@@ -11,6 +11,9 @@ This repository contains code for the topic modeling pipeline for the CLARIAH-VL
 
 Note that a GPU is required to use this pipeline.
 
+### Google Colab
+Use Toposcope in Google Colab: https://colab.research.google.com/drive/1x6XAIt7gsC4-MYRNFcEDVd-P7m_2VcPI?usp=drive_link
+
 ### Pipeline overview
 
 ![Alt text](clariah_topic_pipeline.png)
