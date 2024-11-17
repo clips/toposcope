@@ -1,4 +1,4 @@
-top2vec[indexing]==1.0.34
+top2vec==1.0.34
 sentence_transformers==3.3.0
 datasets==2.16.1
 tensorflow[and_cuda]==2.15.0.post1
@@ -12,8 +12,8 @@ gradio==4.44.1
 pandas==1.4.0
 gensim==4.2.0
 nltk==3.8.1
-spacy==3.7.0
-en_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.7.0/en_core_web_lg-3.7.0-py3-none-any.whl
-nl_core_news_lg @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_lg-3.7.0/nl_core_news_lg-3.7.0-py3-none-any.whl
-de_core_news_lg @ https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.7.0/de_core_news_lg-3.7.0-py3-none-any.whl
-fr_core_news_lg @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_lg-3.7.0/fr_core_news_lg-3.7.0-py3-none-any.whl
+spacy==3.8.0
+en_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl
+nl_core_news_lg @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_lg-3.8.0/nl_core_news_lg-3.8.0-py3-none-any.whl
+de_core_news_lg @ https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.8.0/de_core_news_lg-3.8.0-py3-none-any.whl
+fr_core_news_lg @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_lg-3.8.0/fr_core_news_lg-3.8.0-py3-none-any.whl
